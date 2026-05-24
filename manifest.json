@@ -1,0 +1,10 @@
+{
+  "name": "兒童行為集點管理系統",
+  "short_name": "集點系統",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f0f4f8",
+  "theme_color": "#6c5ce7",
+  "orientation": "portrait",
+  "lang": "zh-TW"
+}

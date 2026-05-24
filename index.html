@@ -2,7 +2,14 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+    <meta name="screen-orientation" content="portrait">
+    <meta name="x5-orientation" content="portrait">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#6c5ce7">
+    <link rel="manifest" href="manifest.json">
     <title>兒童行為集點管理系統 PRO</title>
     <!-- 引入 Canvas-Confetti 華麗特效套件 -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
@@ -17,6 +24,44 @@
             padding-top: 110px; /* 為置頂分數留空間 */
             padding-bottom: 60px;
             color: #333;
+        }
+
+        /* 橫向時遮罩（一般瀏覽器無法真正鎖系統旋轉，改為提示轉回直式） */
+        #portraitLockOverlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: linear-gradient(160deg, #6c5ce7, #4834d4);
+            color: #fff;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 24px;
+            font-weight: bold;
+        }
+        #portraitLockOverlay .portrait-lock-icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+            animation: portrait-wiggle 1.2s ease-in-out infinite;
+        }
+        #portraitLockOverlay p {
+            margin: 0;
+            font-size: 18px;
+            line-height: 1.5;
+            max-width: 280px;
+        }
+        @keyframes portrait-wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-12deg); }
+            75% { transform: rotate(12deg); }
+        }
+        @media screen and (orientation: landscape) and (max-height: 520px) {
+            #portraitLockOverlay { display: flex; }
+            body.portrait-locked > *:not(#portraitLockOverlay) {
+                visibility: hidden;
+            }
         }
         
         /* 置頂分數看板 (固定不動) */
@@ -278,6 +323,45 @@
             margin: 6px 0 2px;
             font-weight: bold;
         }
+        .weekly-auto-hint {
+            font-size: 11px;
+            color: #95a5a6;
+            margin: 4px 0 10px;
+            line-height: 1.45;
+        }
+        .weekly-group-title {
+            grid-column: 1 / -1;
+            color: #7f8c8d;
+            font-size: 12px;
+            font-weight: 900;
+            margin: 6px 0 2px;
+        }
+        .insight-compare {
+            margin-top: 6px;
+            text-align: center;
+        }
+        .week-delta {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 999px;
+        }
+        .week-delta-up {
+            color: #27ae60;
+            background: #eafaf1;
+            border: 1px solid #abebc6;
+        }
+        .week-delta-down {
+            color: #e74c3c;
+            background: #fdedec;
+            border: 1px solid #f5b7b1;
+        }
+        .week-delta-flat {
+            color: #95a5a6;
+            background: #f4f6f7;
+            border: 1px solid #ecf0f1;
+        }
         .daily-score-block {
             margin-top: 14px;
             padding-top: 12px;
@@ -431,6 +515,47 @@
             border-radius: 10px;
             margin-bottom: 10px;
             border: 1px solid #ececec;
+        }
+        .admin-section-head {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 0;
+            margin: 0;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            text-align: left;
+        }
+        .admin-section-head h3 {
+            margin: 0;
+            font-size: 15px;
+            color: #2c3e50;
+            flex: 1;
+        }
+        .admin-fold-arrow {
+            font-size: 12px;
+            color: #95a5a6;
+            transition: transform 0.25s ease;
+            flex-shrink: 0;
+        }
+        .admin-section:not(.admin-section--open) .admin-fold-arrow {
+            transform: rotate(-90deg);
+        }
+        .admin-section-body {
+            overflow: hidden;
+            max-height: 4000px;
+            opacity: 1;
+            transition: max-height 0.35s ease, opacity 0.2s ease, margin 0.25s ease;
+            margin-top: 10px;
+        }
+        .admin-section:not(.admin-section--open) .admin-section-body {
+            max-height: 0;
+            opacity: 0;
+            margin-top: 0;
+            pointer-events: none;
         }
         .admin-section h3 { margin-top: 0; font-size: 15px; color: #2c3e50; }
         .form-grid {
@@ -709,7 +834,12 @@
         }
     </style>
 </head>
-<body>
+<body class="portrait-locked">
+
+<div id="portraitLockOverlay" aria-hidden="true">
+    <div class="portrait-lock-icon">📱</div>
+    <p>請將手機轉為<strong>直式</strong>使用<br>本系統僅支援直向畫面</p>
+</div>
 
 <!-- 置頂分數看板 -->
 <div class="score-board" id="topScoreBoard"></div>
@@ -748,6 +878,7 @@
                 <button type="button" class="tiny-action tiny-danger" onclick="resetWeeklyStatsWithPin()">本週統計歸零</button>
             </span>
         </div>
+        <div class="weekly-auto-hint">💡 預設每週日 → 週一自動歸零；項目下方 ＋／− 為<strong>本週較上週</strong>次數增減（非手動調整）</div>
         <div id="weeklyClearedHint" class="weekly-cleared-hint" style="display:none;"></div>
         <div class="insight-grid" id="weeklyReviewGrid"></div>
         <div class="daily-score-block">
@@ -796,93 +927,116 @@
         <hr style="border:0; border-top:1px solid #eee; margin-bottom:15px;">
         
         <!-- 1. 人員管理 -->
-        <div class="admin-section">
-            <h3>👥 人員名單管理</h3>
-            <button class="btn-sm btn-green" onclick="toggleAddMember()">＋ 添加</button>
-            <div id="addMemberBox" style="display:none; margin-top:8px;">
-                <div class="form-grid">
-                    <input type="text" id="newMemName" placeholder="成員名字">
-                    <input type="text" id="newMemImg" placeholder="圖片網址 或 單個 Emoji">
+        <div class="admin-section admin-section--open" data-admin-section="members">
+            <button type="button" class="admin-section-head" onclick="toggleAdminSection('members')">
+                <h3>👥 人員名單管理</h3>
+                <span class="admin-fold-arrow" aria-hidden="true">▼</span>
+            </button>
+            <div class="admin-section-body">
+                <button class="btn-sm btn-green" onclick="toggleAddMember()">＋ 添加</button>
+                <div id="addMemberBox" style="display:none; margin-top:8px;">
+                    <div class="form-grid">
+                        <input type="text" id="newMemName" placeholder="成員名字">
+                        <input type="text" id="newMemImg" placeholder="圖片網址 或 單個 Emoji">
+                    </div>
+                    <button class="btn-green btn-block" onclick="addMember()">確認添加</button>
                 </div>
-                <button class="btn-green btn-block" onclick="addMember()">確認添加</button>
+                <table class="admin-table">
+                    <thead>
+                        <tr><th style="width:45px;">頭像</th><th>名字</th><th>圖片/Emoji修改</th><th style="width:105px;">操作</th></tr>
+                    </thead>
+                    <tbody id="adminMemberTable"></tbody>
+                </table>
+                <div class="admin-mini-list" id="adminMemberCards"></div>
             </div>
-            
-            <table class="admin-table">
-                <thead>
-                    <tr><th style="width:45px;">頭像</th><th>名字</th><th>圖片/Emoji修改</th><th style="width:105px;">操作</th></tr>
-                </thead>
-                <tbody id="adminMemberTable"></tbody>
-            </table>
-            <div class="admin-mini-list" id="adminMemberCards"></div>
         </div>
 
         <!-- 2. 項目管理 -->
-        <div class="admin-section">
-            <h3>📝 項目管理 (欄位內字改了會直接存)</h3>
-            <div id="saveStatus" class="save-status"></div>
-            <button class="btn-sm btn-green" onclick="toggleAddItem()">＋ 添加</button>
-            <div id="addItemBox" style="display:none; margin-top:8px;">
-                <div class="form-grid">
-                    <input type="text" id="newItemName" placeholder="項目名稱">
-                    <input type="number" id="newItemScore" placeholder="分數" min="1">
+        <div class="admin-section admin-section--open" data-admin-section="items">
+            <button type="button" class="admin-section-head" onclick="toggleAdminSection('items')">
+                <h3>📝 項目管理 (欄位內字改了會直接存)</h3>
+                <span class="admin-fold-arrow" aria-hidden="true">▼</span>
+            </button>
+            <div class="admin-section-body">
+                <div id="saveStatus" class="save-status"></div>
+                <button class="btn-sm btn-green" onclick="toggleAddItem()">＋ 添加</button>
+                <div id="addItemBox" style="display:none; margin-top:8px;">
+                    <div class="form-grid">
+                        <input type="text" id="newItemName" placeholder="項目名稱">
+                        <input type="number" id="newItemScore" placeholder="分數" min="1">
+                    </div>
+                    <div class="form-grid">
+                        <select id="newItemType">
+                            <option value="🍏 表現加分">🍏 表現加分</option>
+                            <option value="🎁 獎勵兌換">🎁 獎勵兌換</option>
+                            <option value="🔻 扣分">🔻 扣分</option>
+                        </select>
+                        <input type="text" id="newItemImg" placeholder="圖示">
+                    </div>
+                    <button class="btn-green btn-block" onclick="addItem()">確認添加</button>
                 </div>
-                <div class="form-grid">
-                    <select id="newItemType">
-                        <option value="🍏 表現加分">🍏 表現加分</option>
-                        <option value="🎁 獎勵兌換">🎁 獎勵兌換</option>
-                        <option value="🔻 扣分">🔻 扣分</option>
-                    </select>
-                    <input type="text" id="newItemImg" placeholder="圖示">
-                </div>
-                <button class="btn-green btn-block" onclick="addItem()">確認添加</button>
+                <table class="admin-table">
+                    <thead>
+                        <tr><th style="width:40px;">圖</th><th style="width:65px;">類型</th><th>項目名稱</th><th style="width:55px;">分數</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="adminItemTable"></tbody>
+                </table>
+                <div class="admin-mini-list" id="adminItemCards"></div>
             </div>
-
-            <table class="admin-table">
-                <thead>
-                    <tr><th style="width:40px;">圖</th><th style="width:65px;">類型</th><th>項目名稱</th><th style="width:55px;">分數</th><th>操作</th></tr>
-                </thead>
-                <tbody id="adminItemTable"></tbody>
-            </table>
-            <div class="admin-mini-list" id="adminItemCards"></div>
         </div>
 
         <!-- 2b. 語音設定 -->
-        <div class="admin-section">
-            <h3>🔊 語音設定</h3>
-            <div class="admin-edit-field">
-                <label>語音包</label>
-                <select id="voicePackSelect" onchange="setVoiceSetting('voiceURI', this.value)"></select>
+        <div class="admin-section" data-admin-section="voice">
+            <button type="button" class="admin-section-head" onclick="toggleAdminSection('voice')">
+                <h3>🔊 語音設定</h3>
+                <span class="admin-fold-arrow" aria-hidden="true">▼</span>
+            </button>
+            <div class="admin-section-body">
+                <div class="admin-edit-field">
+                    <label>語音包</label>
+                    <select id="voicePackSelect" onchange="setVoiceSetting('voiceURI', this.value)"></select>
+                </div>
+                <div class="admin-edit-field">
+                    <label>語調 <span class="voice-range-val" id="voicePitchVal">1.0</span></label>
+                    <input type="range" class="voice-range" id="voicePitch" min="0.5" max="2" step="0.1" value="1"
+                        oninput="setVoiceSetting('pitch', this.value)">
+                </div>
+                <div class="admin-edit-field">
+                    <label>大小聲 <span class="voice-range-val" id="voiceVolumeVal">100%</span></label>
+                    <input type="range" class="voice-range" id="voiceVolume" min="0" max="1" step="0.05" value="1"
+                        oninput="setVoiceSetting('volume', this.value)">
+                </div>
+                <button type="button" class="btn-blue btn-block" style="margin-top:6px;" onclick="previewVoiceSettings()">🔊 試聽</button>
             </div>
-            <div class="admin-edit-field">
-                <label>語調 <span class="voice-range-val" id="voicePitchVal">1.0</span></label>
-                <input type="range" class="voice-range" id="voicePitch" min="0.5" max="2" step="0.1" value="1"
-                    oninput="setVoiceSetting('pitch', this.value)">
-            </div>
-            <div class="admin-edit-field">
-                <label>大小聲 <span class="voice-range-val" id="voiceVolumeVal">100%</span></label>
-                <input type="range" class="voice-range" id="voiceVolume" min="0" max="1" step="0.05" value="1"
-                    oninput="setVoiceSetting('volume', this.value)">
-            </div>
-            <button type="button" class="btn-blue btn-block" style="margin-top:6px;" onclick="previewVoiceSettings()">🔊 試聽</button>
         </div>
 
         <!-- 3. 系統歸零 -->
-        <div class="admin-section" style="border: 1px solid #f5b7b1; background:#fdf2f2;">
-            <h3 style="color: #c0392b; margin-bottom:4px; font-size:13px;">⚠️ 進階功能</h3>
-            <button class="btn-orange" onclick="resetAllScores()">🔄 全體分數歸零並清空歷史紀錄</button>
+        <div class="admin-section" data-admin-section="advanced" style="border: 1px solid #f5b7b1; background:#fdf2f2;">
+            <button type="button" class="admin-section-head" onclick="toggleAdminSection('advanced')">
+                <h3 style="color: #c0392b; font-size:13px;">⚠️ 進階功能</h3>
+                <span class="admin-fold-arrow" aria-hidden="true">▼</span>
+            </button>
+            <div class="admin-section-body">
+                <button class="btn-orange" onclick="resetAllScores()">🔄 全體分數歸零並清空歷史紀錄</button>
+            </div>
         </div>
 
         <!-- 4. 備份與後台 PIN -->
-        <div class="admin-section">
-            <h3>💾 備份與安全</h3>
-            <div class="form-grid">
-                <button class="btn-blue btn-block" onclick="exportBackup()">匯出備份</button>
-                <button class="btn-gray btn-block" onclick="document.getElementById('importBackupFile').click()">匯入備份</button>
-            </div>
-            <input type="file" id="importBackupFile" accept="application/json,.json" style="display:none;" onchange="importBackup(this)">
-            <div class="form-grid" style="margin-top:10px;">
-                <input type="password" id="newAdminPin" placeholder="設定新的後台 PIN（預設 1234）" inputmode="numeric">
-                <button class="btn-orange btn-block" onclick="changeAdminPin()">更新 PIN</button>
+        <div class="admin-section" data-admin-section="backup">
+            <button type="button" class="admin-section-head" onclick="toggleAdminSection('backup')">
+                <h3>💾 備份與安全</h3>
+                <span class="admin-fold-arrow" aria-hidden="true">▼</span>
+            </button>
+            <div class="admin-section-body">
+                <div class="form-grid">
+                    <button class="btn-blue btn-block" onclick="exportBackup()">匯出備份</button>
+                    <button class="btn-gray btn-block" onclick="document.getElementById('importBackupFile').click()">匯入備份</button>
+                </div>
+                <input type="file" id="importBackupFile" accept="application/json,.json" style="display:none;" onchange="importBackup(this)">
+                <div class="form-grid" style="margin-top:10px;">
+                    <input type="password" id="newAdminPin" placeholder="設定新的後台 PIN（預設 1234）" inputmode="numeric">
+                    <button class="btn-orange btn-block" onclick="changeAdminPin()">更新 PIN</button>
+                </div>
             </div>
         </div>
 
@@ -1064,6 +1218,46 @@ function renderAdminVoiceUI() {
 function previewVoiceSettings() {
     speakText('這是語音試聽，你好棒，繼續加油。');
 }
+const defaultAdminFold = {
+    members: true,
+    items: true,
+    voice: false,
+    advanced: false,
+    backup: false
+};
+
+function loadAdminFoldState() {
+    try {
+        const saved = JSON.parse(localStorage.getItem('family_admin_fold_v1') || 'null');
+        if (!saved || typeof saved !== 'object') return { ...defaultAdminFold };
+        return { ...defaultAdminFold, ...saved };
+    } catch (error) {
+        return { ...defaultAdminFold };
+    }
+}
+
+function saveAdminFoldState(state) {
+    localStorage.setItem('family_admin_fold_v1', JSON.stringify(state));
+}
+
+function applyAdminFoldState(state) {
+    document.querySelectorAll('[data-admin-section]').forEach(section => {
+        const key = section.dataset.adminSection;
+        section.classList.toggle('admin-section--open', !!state[key]);
+    });
+}
+
+function initAdminFoldState() {
+    applyAdminFoldState(loadAdminFoldState());
+}
+
+function toggleAdminSection(key) {
+    const state = loadAdminFoldState();
+    state[key] = !state[key];
+    saveAdminFoldState(state);
+    applyAdminFoldState(state);
+}
+
 function toggleAddMember() {
     const box = document.getElementById('addMemberBox');
     box.style.display = box.style.display === 'none' ? 'block' : 'none';
@@ -1270,9 +1464,50 @@ function resetWeeklyStatsWithPin() {
     if (!member) return alert('請先選擇成員。');
     if (!promptPinOk()) return;
     if (!confirm(`確定將「${member.name}」的本週統計歸零？\n（總分不變，本週回顧數字歸零；每日得分仍可查看事件）`)) return;
-    member.weeklyClearedWeek = weekStartKey();
+    const week = weekStartKey();
+    member.weeklyClearedWeek = week;
     save();
     renderFrontUI();
+}
+
+function prevWeekStartKey(date = new Date()) {
+    const copy = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const day = copy.getDay() || 7;
+    copy.setDate(copy.getDate() - day + 1 - 7);
+    return todayKey(copy);
+}
+
+function prevWeekEndKey(date = new Date()) {
+    const copy = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const day = copy.getDay() || 7;
+    copy.setDate(copy.getDate() - day);
+    return todayKey(copy);
+}
+
+function itemCountInWeekRange(itemName, startKey, endKey, memberIndex = currentSelectedMemberIndex) {
+    const member = members[memberIndex];
+    if (!member) return 0;
+    return logs.filter(log =>
+        log.itemName === itemName &&
+        (log.date || todayKey()) >= startKey &&
+        (log.date || todayKey()) <= endKey &&
+        (log.memberName === member.name || log.memberIndex === memberIndex)
+    ).length;
+}
+
+function lastWeeklyCountForItem(itemName, memberIndex = currentSelectedMemberIndex) {
+    return itemCountInWeekRange(itemName, prevWeekStartKey(), prevWeekEndKey(), memberIndex);
+}
+
+function formatWeekDeltaBadge(thisWeek, lastWeek) {
+    const delta = thisWeek - lastWeek;
+    if (delta > 0) {
+        return `<span class="week-delta week-delta-up">＋${delta} 較上週</span>`;
+    }
+    if (delta < 0) {
+        return `<span class="week-delta week-delta-down">−${Math.abs(delta)} 較上週</span>`;
+    }
+    return `<span class="week-delta week-delta-flat">±0 較上週</span>`;
 }
 
 function renderWeekDaysRow() {
@@ -1345,16 +1580,8 @@ function itemCountForMember(itemName, memberIndex = currentSelectedMemberIndex) 
 }
 
 function weeklyPlusCountForItem(itemName, memberIndex = currentSelectedMemberIndex) {
-    const member = members[memberIndex];
-    if (!member) return 0;
     if (isWeeklyStatsCleared(memberIndex)) return 0;
-    const start = weekStartKey();
-    return logs.filter(log =>
-        log.change > 0 &&
-        (log.date || todayKey()) >= start &&
-        log.itemName === itemName &&
-        (log.memberName === member.name || log.memberIndex === memberIndex)
-    ).length;
+    return itemCountInWeekRange(itemName, weekStartKey(), weekEndKey(), memberIndex);
 }
 
 function currentStreakDays() {
@@ -1492,19 +1719,38 @@ function renderWeeklyReview() {
     const cleared = isWeeklyStatsCleared();
     if (clearedHint) {
         clearedHint.style.display = cleared ? 'block' : 'none';
-        clearedHint.innerText = cleared ? '📌 本週統計已歸零（總分不變；新週一自動重新累計）' : '';
+        clearedHint.innerText = cleared ? '📌 本週已手動歸零（下週一仍會自動重新累計）' : '';
     }
 
-    const plusItems = items.filter(item => itemKind(item) === 'plus');
-    grid.innerHTML = plusItems.map(item => `
-        <div class="insight-card">
-            <div class="insight-label">${getImgHTML(item.img)} ${safeText(item.name)}</div>
-            <div class="insight-value">${weeklyPlusCountForItem(item.name)} 次</div>
-        </div>
-    `).join('') || '<div class="empty" style="grid-column:1/-1;">尚無加分項目。</div>';
+    const groups = [
+        { kind: 'plus', title: '🍏 本週加分' },
+        { kind: 'reward', title: '🎁 本週兌換' },
+        { kind: 'deduct', title: '🔻 本週扣分' }
+    ];
+    let gridHTML = '';
+    groups.forEach(group => {
+        const groupItems = items
+            .map((item, idx) => ({ item, idx }))
+            .filter(entry => itemKind(entry.item) === group.kind);
+        if (groupItems.length === 0) return;
+        gridHTML += `<div class="weekly-group-title">${group.title}</div>`;
+        gridHTML += groupItems.map(({ item }) => {
+            const thisWeek = weeklyPlusCountForItem(item.name);
+            const lastWeek = lastWeeklyCountForItem(item.name);
+            return `
+                <div class="insight-card">
+                    <div class="insight-label">${getImgHTML(item.img)} ${safeText(item.name)}</div>
+                    <div class="insight-value">${thisWeek} 次</div>
+                    <div class="insight-compare">${formatWeekDeltaBadge(thisWeek, lastWeek)}</div>
+                </div>
+            `;
+        }).join('');
+    });
+    grid.innerHTML = gridHTML || '<div class="empty" style="grid-column:1/-1;">尚無項目，請至後台新增。</div>';
 
     renderWeekDaysRow();
 
+    const plusItems = items.filter(item => itemKind(item) === 'plus');
    const totalWeeklyPlus = plusItems.reduce((sum, item) => sum + weeklyPlusCountForItem(item.name), 0);
     const seed = totalWeeklyPlus + member.score + currentStreakDays() + todayKey().replaceAll('-', '').split('').reduce((a, b) => a + Number(b), 0);
     
@@ -1847,6 +2093,7 @@ function openAdmin() {
     }
     document.getElementById('adminModal').style.display = 'block';
     renderAdminUI();
+    initAdminFoldState();
 }
 
 function closeAdmin() {
@@ -2244,6 +2491,7 @@ function clearEverything() {
         localStorage.removeItem('family_logs_v3');
         localStorage.removeItem('family_admin_pin_v1');
         localStorage.removeItem('family_voice_settings_v1');
+        localStorage.removeItem('family_admin_fold_v1');
         logs = [];
         init();
         closeAdmin();
@@ -2262,6 +2510,16 @@ window.onclick = function(event) {
     if (event.target == adminModal) closeAdmin();
     if (event.target == dailyModal) closeDailyDetail();
 }
+
+function lockPortraitOrientation() {
+    if (!screen.orientation || typeof screen.orientation.lock !== 'function') return;
+    screen.orientation.lock('portrait').catch(() => {});
+}
+
+window.addEventListener('load', lockPortraitOrientation);
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') lockPortraitOrientation();
+});
 
 window.onload = init;
 </script>
