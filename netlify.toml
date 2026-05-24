@@ -1,0 +1,9 @@
+# 靜態網站：根目錄的 index.html 直接發布，不需 build
+[build]
+  publish = "."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"

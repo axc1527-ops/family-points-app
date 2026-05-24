@@ -1,0 +1,1877 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>兒童行為集點管理系統 PRO</title>
+    <!-- 引入 Canvas-Confetti 華麗特效套件 -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background-color: #f0f4f8;
+            margin: 0;
+            padding-top: 110px; /* 為置頂分數留空間 */
+            padding-bottom: 60px;
+            color: #333;
+        }
+        
+        /* 置頂分數看板 (固定不動) */
+        .score-board {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            padding: 15px 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .score-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 8px 18px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 2px solid transparent;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+        /* 當前選中角色：明顯發光與跳動感 */
+        .score-card.active {
+            background: white;
+            color: #6c5ce7;
+            border-color: #ffd32a;
+            box-shadow: 0 0 15px rgba(255, 211, 42, 0.8);
+            transform: scale(1.08);
+        }
+        .score-num {
+            font-size: 22px;
+            font-weight: 900;
+            transition: transform 0.3s ease;
+        }
+        
+        /* 分數變動動畫 */
+        @keyframes pulse-up {
+            0% { transform: scale(1); color: #2ecc71; }
+            50% { transform: scale(1.4); color: #2ecc71; }
+            100% { transform: scale(1); }
+        }
+        @keyframes pulse-down {
+            0% { transform: scale(1); color: #e74c3c; }
+            50% { transform: scale(1.4); color: #e74c3c; }
+            100% { transform: scale(1); }
+        }
+        .animate-up { animation: pulse-up 0.6s ease-in-out; }
+        .animate-down { animation: pulse-down 0.6s ease-in-out; }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+
+        /* 區塊分類 */
+        .category-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 25px 0 12px 5px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* 項目卡片佈局 */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        .item-card {
+            background: white;
+            border-radius: 16px;
+            padding: 14px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #eef2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 140px;
+        }
+        .item-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+        }
+        .item-card:active {
+            transform: scale(0.95);
+        }
+      .item-img {
+            width: 85px; /* 放大外框寬度 */
+            height: 70px; /* 縮減高度，縮短與下方文字的距離 */
+            object-fit: visible; /* 讓圖片完整顯現，不被遮擋 */
+            background: transparent; /* 變成透明背景，直接隱形圓圈 */
+            margin-bottom: 2px; /* 縮減跟文字的間距 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 52px; /* 讓單個 Emoji 變得超大！ */
+            overflow: visible; /* 關鍵：允許內容完全滿出來、溢出！ */
+            flex-shrink: 0;
+        }
+        .icon-row {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            white-space: nowrap;
+            line-height: 1;
+        }
+    .item-img .icon-row {
+            flex-wrap: nowrap;
+            font-size: 48px; /* 多符號時的超大字體 */
+            max-width: none; /* 解除最大寬度限制 */
+            overflow: visible; /* 允許橫向溢出 */
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .item-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #34495e;
+            margin-bottom: 8px;
+            word-break: break-all;
+            line-height: 1.3;
+        }
+        .item-score-tag {
+            font-size: 13px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: bold;
+        }
+        .plus-tag { background: #e8f8f5; color: #2ecc71; }
+        .minus-tag { background: #fdedec; color: #e74c3c; }
+        .deduct-tag { background: #f4ecff; color: #8e44ad; }
+
+        /* 歷史流水帳紀錄區 */
+        .history-section {
+            background: white;
+            border-radius: 16px;
+            padding: 15px;
+            margin-top: 30px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+        }
+        .history-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            justify-content: space-between;
+        }
+        .history-tools {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .tiny-action {
+            width: auto;
+            min-width: 68px;
+            padding: 5px 8px;
+            border-radius: 999px;
+            border: 1px solid #dfe6e9;
+            background: #fff;
+            color: #636e72;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 13px;
+        }
+        .history-item {
+            padding: 8px 5px;
+            border-bottom: 1px dashed #edeef0;
+            display: flex;
+            justify-content: space-between;
+            color: #555;
+        }
+        .history-item:last-child { border-bottom: none; }
+        .hist-time { color: #bbb; font-size: 11px; }
+        .insight-section {
+            background: white;
+            border-radius: 16px;
+            padding: 15px;
+            margin-top: 18px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+        }
+        .insight-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .insight-card {
+            background: #f8f9fa;
+            border: 1px solid #eef2f5;
+            border-radius: 12px;
+            padding: 11px;
+            min-height: 78px;
+        }
+        .insight-label {
+            color: #7f8c8d;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        .insight-value {
+            color: #2c3e50;
+            font-size: 18px;
+            font-weight: 900;
+            line-height: 1.3;
+        }
+        .encourage-box {
+            margin-top: 12px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #fff4d6, #eaf8f5);
+            border: 1px solid #f7d794;
+            color: #34495e;
+            padding: 13px;
+            font-size: 15px;
+            font-weight: bold;
+            line-height: 1.45;
+        }
+
+        /* 通用彈窗樣式 (Modal) */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
+            padding: 20px 10px;
+            backdrop-filter: blur(3px);
+        }
+        .modal-content {
+            background: white;
+            max-width: 500px;
+            margin: 30px auto;
+            border-radius: 20px;
+            padding: 24px;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .close-modal {
+            position: absolute;
+            right: 20px; top: 15px;
+            font-size: 28px; cursor: pointer; color: #95a5a6;
+        }
+
+        /* 前台確認彈窗專屬樣式 */
+        .confirm-box {
+            text-align: center;
+            padding: 10px 0;
+        }
+        .confirm-avatar { font-size: 50px; margin-bottom: 10px; }
+        .confirm-text { font-size: 18px; font-weight: bold; margin-bottom: 20px; color: #2c3e50; }
+        .confirm-text.warning {
+            background: #fff0f0;
+            border: 2px solid #e74c3c;
+            border-radius: 14px;
+            padding: 14px 10px;
+            color: #c0392b;
+        }
+        .pin-check {
+            margin: 12px 0 4px;
+            text-align: left;
+        }
+        .pin-check label {
+            display: block;
+            color: #7f8c8d;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .pin-hint {
+            color: #95a5a6;
+            font-size: 12px;
+            margin-top: 5px;
+            text-align: center;
+        }
+        .confirm-btns { display: flex; gap: 12px; }
+        
+        /* 後台表格與表單 */
+        .admin-section {
+            background: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ececec;
+        }
+        .admin-section h3 { margin-top: 0; font-size: 15px; color: #2c3e50; }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+        input:focus, select:focus { border-color: #6c5ce7; }
+        .btn-block { font-weight: bold; margin-top: 5px; cursor: pointer;}
+        .btn-sm {
+            width: auto;
+            padding: 4px 8px;
+            font-size: 11px;
+            min-height: 28px;
+            cursor: pointer;
+            margin: 1px;
+            border-radius: 6px;
+        }
+        .confirm-btns button {
+            width: 100%;
+            padding: 16px; /* 加大按鈕上下間距，更好點選 */
+            font-size: 20px; /* 放大文字尺寸到 20px */
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn-green { background-color: #2ecc71 !important; color: white; } /* 顯眼的翠綠底 */
+        .btn-green:hover { background-color: #27ae60 !important; }
+        .btn-orange { background-color: #e67e22 !important; color: white; }
+        .btn-red { background-color: #e74c3c !important; color: white; }
+        .btn-red:hover { background-color: #c0392b !important; }
+        .save-status {
+            min-height: 18px;
+            margin-top: 8px;
+            color: #27ae60;
+            font-size: 12px;
+            text-align: right;
+            font-weight: bold;
+        }
+        
+        .admin-table {
+            display: none !important;
+        }
+        .admin-table th, .admin-table td {
+            border: 1px solid #dee2e6;
+            padding: 8px 6px;
+            text-align: center;
+        }
+        .admin-table th { background: #e9ecef; }
+        .admin-table input { padding: 4px 6px; border-radius: 4px; }
+        .preview-thumb { width: 32px; height: 32px; object-fit: cover; border-radius: 50%; vertical-align: middle;}
+        .admin-mini-list {
+            display: grid;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .admin-row-card {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 6px;
+            align-items: center;
+            background: white;
+            border: 1px solid #ececec;
+            border-radius: 10px;
+            padding: 7px 9px;
+        }
+        .admin-row-main {
+            min-width: 0;
+            font-size: 14px;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+        .admin-row-title {
+            font-weight: 900;
+            color: #2c3e50;
+        }
+        .admin-row-sub {
+            color: #7f8c8d;
+            font-size: 12px;
+            margin-top: 3px;
+        }
+        .admin-row-actions {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .admin-group-title {
+            color: #7f8c8d;
+            font-size: 12px;
+            font-weight: 900;
+            margin: 14px 0 4px;
+        }
+
+        /* 後台：修改彈窗（一次顯示所有欄位） */
+        #adminEditModal { z-index: 2100; }
+        .admin-edit-content { max-width: 400px; padding: 20px 22px 18px; }
+        .admin-edit-content h3 {
+            margin: 0 0 14px;
+            font-size: 17px;
+            color: #2c3e50;
+            text-align: center;
+        }
+        .admin-edit-field { margin-bottom: 12px; }
+        .admin-edit-field label {
+            display: block;
+            font-size: 12px;
+            font-weight: bold;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+        .admin-edit-field input[type="text"],
+        .admin-edit-field input[type="number"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+        .admin-edit-type-row {
+            display: flex;
+            gap: 6px;
+        }
+        .admin-edit-type-opt {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 10px 6px;
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #636e72;
+            cursor: pointer;
+            user-select: none;
+        }
+        .admin-edit-type-opt input { width: auto; margin: 0; accent-color: #6c5ce7; }
+        .admin-edit-type-opt:has(input:checked) {
+            border-color: #6c5ce7;
+            background: #f3f0ff;
+            color: #2c3e50;
+        }
+        .admin-edit-footer {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 18px;
+        }
+        .admin-edit-footer .btn-edit-delete {
+            flex: 0 0 auto;
+            width: auto;
+            padding: 7px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            background: #e74c3c;
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(231, 76, 60, 0.35);
+        }
+        .admin-edit-footer .btn-edit-delete:hover { background: #c0392b; }
+        .admin-edit-footer .btn-edit-cancel {
+            flex: 1;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            border: 1px solid #dfe6e9;
+            border-radius: 10px;
+            background: #fff;
+            color: #636e72;
+            cursor: pointer;
+        }
+        .admin-edit-footer .btn-edit-save {
+            flex: 1;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            background: #2ecc71;
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(46, 204, 113, 0.35);
+        }
+        .admin-edit-footer .btn-edit-save:hover { background: #27ae60; }
+
+        /* 底層進入後台小字 */
+        .footer-link {
+            text-align: center;
+            margin: 50px 0 10px 0;
+            font-size: 11px;
+            color: #bdc3c7;
+            cursor: pointer;
+            user-select: none;
+        }
+        /* 一鍵還原超級邊緣小字 */
+        .ultra-reset-link {
+            text-align: center;
+            margin: 80px 0 5px 0;
+            font-size: 9px;
+            color: #e6e6e6; /* 極淡顏色，接近背景色 */
+            cursor: pointer;
+            user-select: none;
+        }
+        .ultra-reset-link:hover { color: #f1948a; } /* 懸停時才稍微顯現紅字 */
+
+        @media (max-width: 520px) {
+            body { padding-top: 118px; }
+            .modal { padding: 8px; }
+            .modal-content {
+                margin: 10px auto;
+                padding: 18px 14px;
+                border-radius: 16px;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .admin-table,
+            .admin-table thead,
+            .admin-table tbody,
+            .admin-table tr,
+            .admin-table th,
+            .admin-table td {
+                display: block;
+                width: 100% !important;
+            }
+            .admin-table thead {
+                display: none;
+            }
+            .admin-table tr {
+                background: #fff;
+                border: 1px solid #dee2e6;
+                border-radius: 12px;
+                margin: 10px 0;
+                padding: 10px;
+            }
+            .admin-table td {
+                border: 0;
+                padding: 6px 0;
+                text-align: left;
+            }
+            .admin-table td input,
+            .admin-table td select {
+                width: 100% !important;
+                min-height: 38px;
+            }
+            .btn-sm {
+                min-height: 34px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 置頂分數看板 -->
+<div class="score-board" id="topScoreBoard"></div>
+
+<div class="container">
+    <!-- 前台：表現加分區 -->
+    <div class="category-title">🍏 表現加分</div>
+    <div class="grid-container" id="frontPlusGrid"></div>
+
+    <!-- 前台：獎勵兌換區 -->
+    <div class="category-title">🎁 獎勵兌換</div>
+    <div class="grid-container" id="frontMinusGrid"></div>
+
+    <!-- 前台：扣分區 -->
+    <div class="category-title">🔻 扣分調整</div>
+    <div class="grid-container" id="frontDeductGrid"></div>
+
+    <!-- 前台：最近流水帳紀錄 -->
+    <div class="history-section">
+        <div class="history-title">
+            <span>📜 點數動態紀錄 (防止賴皮)</span>
+            <span class="history-tools">
+                <button class="tiny-action" onclick="undoLastLog()">復原上一筆</button>
+            </span>
+        </div>
+        <ul class="history-list" id="historyList">
+            <li class="history-item" style="color:#aaa; justify-content:center;">尚無任何變動紀錄</li>
+        </ul>
+    </div>
+
+    <!-- 前台：統計與本週回顧 -->
+    <div class="insight-section">
+        <div class="history-title">🌟 本週回顧</div>
+        <div class="insight-grid" id="weeklyReviewGrid"></div>
+        <div class="encourage-box" id="encourageBox">今天也很棒，慢慢累積就會變很多。</div>
+    </div>
+</div>
+
+<!-- 最底層進入後台小字 -->
+<div class="footer-link" onclick="openAdmin()">⚙️ 系統管理入口</div>
+
+
+<!-- 【彈窗一】前台：加減分確認視窗 -->
+<div id="confirmModal" class="modal">
+    <div class="modal-content" style="max-width: 380px; margin-top: 100px;">
+        <div class="confirm-box">
+            <div class="confirm-avatar" id="confAvatar">👶</div>
+            <div class="confirm-text" id="confText">確定要幫 Lucy 加分嗎？</div>
+            <div class="pin-hint" style="margin:12px 0; color: #a4b0be; font-size: 13px;">💡 提示：點擊白色框框外面任意處即可取消。</div>
+            <div class="confirm-btns">
+                <button id="confExecuteBtn" class="btn-green">確認</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- 【彈窗二】後台：管理中心 -->
+<div id="adminModal" class="modal" style="overflow-y: auto;">
+    <div class="modal-content" style="max-width: 550px;">
+        <span class="close-modal" onclick="closeAdmin()">&times;</span>
+        <h2 style="text-align:center; margin-top:0; color:#2c3e50; font-size:20px;">👶 後台管理</h2>
+        <hr style="border:0; border-top:1px solid #eee; margin-bottom:15px;">
+        
+        <!-- 1. 人員管理 -->
+        <div class="admin-section">
+            <h3>👥 人員名單管理</h3>
+            <button class="btn-sm btn-green" onclick="toggleAddMember()">＋ 添加</button>
+            <div id="addMemberBox" style="display:none; margin-top:8px;">
+                <div class="form-grid">
+                    <input type="text" id="newMemName" placeholder="成員名字">
+                    <input type="text" id="newMemImg" placeholder="圖片網址 或 單個 Emoji">
+                </div>
+                <button class="btn-green btn-block" onclick="addMember()">確認添加</button>
+            </div>
+            
+            <table class="admin-table">
+                <thead>
+                    <tr><th style="width:45px;">頭像</th><th>名字</th><th>圖片/Emoji修改</th><th style="width:105px;">操作</th></tr>
+                </thead>
+                <tbody id="adminMemberTable"></tbody>
+            </table>
+            <div class="admin-mini-list" id="adminMemberCards"></div>
+        </div>
+
+        <!-- 2. 項目管理 -->
+        <div class="admin-section">
+            <h3>📝 項目管理 (欄位內字改了會直接存)</h3>
+            <div id="saveStatus" class="save-status"></div>
+            <button class="btn-sm btn-green" onclick="toggleAddItem()">＋ 添加</button>
+            <div id="addItemBox" style="display:none; margin-top:8px;">
+                <div class="form-grid">
+                    <input type="text" id="newItemName" placeholder="項目名稱">
+                    <input type="number" id="newItemScore" placeholder="分數" min="1">
+                </div>
+                <div class="form-grid">
+                    <select id="newItemType">
+                        <option value="🍏 表現加分">🍏 表現加分</option>
+                        <option value="🎁 獎勵兌換">🎁 獎勵兌換</option>
+                        <option value="🔻 扣分">🔻 扣分</option>
+                    </select>
+                    <input type="text" id="newItemImg" placeholder="圖示">
+                </div>
+                <button class="btn-green btn-block" onclick="addItem()">確認添加</button>
+            </div>
+
+            <table class="admin-table">
+                <thead>
+                    <tr><th style="width:40px;">圖</th><th style="width:65px;">類型</th><th>項目名稱</th><th style="width:55px;">分數</th><th>操作</th></tr>
+                </thead>
+                <tbody id="adminItemTable"></tbody>
+            </table>
+            <div class="admin-mini-list" id="adminItemCards"></div>
+        </div>
+
+        <!-- 3. 系統歸零 -->
+        <div class="admin-section" style="border: 1px solid #f5b7b1; background:#fdf2f2;">
+            <h3 style="color: #c0392b; margin-bottom:4px; font-size:13px;">⚠️ 進階功能</h3>
+            <button class="btn-orange" onclick="resetAllScores()">🔄 全體分數歸零並清空歷史紀錄</button>
+        </div>
+
+        <!-- 4. 備份與後台 PIN -->
+        <div class="admin-section">
+            <h3>💾 備份與安全</h3>
+            <div class="form-grid">
+                <button class="btn-blue btn-block" onclick="exportBackup()">匯出備份</button>
+                <button class="btn-gray btn-block" onclick="document.getElementById('importBackupFile').click()">匯入備份</button>
+            </div>
+            <input type="file" id="importBackupFile" accept="application/json,.json" style="display:none;" onchange="importBackup(this)">
+            <div class="form-grid" style="margin-top:10px;">
+                <input type="password" id="newAdminPin" placeholder="設定新的後台 PIN（預設 1234）" inputmode="numeric">
+                <button class="btn-orange btn-block" onclick="changeAdminPin()">更新 PIN</button>
+            </div>
+        </div>
+
+        <!-- 5. 一鍵還原超級邊緣小字 (離遠遠的在後台最底層) -->
+        <div class="ultra-reset-link" onclick="clearEverything()">🗑️ 徹底清除所有資料，還原到初始原廠預設狀態</div>
+    </div>
+</div>
+
+<!-- 【彈窗三】後台：修改（一次顯示所有欄位） -->
+<div id="adminEditModal" class="modal">
+    <div class="modal-content admin-edit-content">
+        <h3 id="adminEditTitle">修改</h3>
+        <div id="adminEditBody"></div>
+        <div class="admin-edit-footer">
+            <button type="button" class="btn-edit-delete" id="adminEditDeleteBtn" onclick="adminEditDelete()">刪除</button>
+            <button type="button" class="btn-edit-cancel" onclick="closeAdminEdit()">取消</button>
+            <button type="button" class="btn-edit-save" onclick="saveAdminEdit()">儲存</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// 預設資料
+const defaultMembers = [
+    { name: 'Lucy', score: 0, img: '👧' }
+];
+
+const defaultItems = [
+    { type: '🍏 表現加分', name: '碗和水壺 換衣服', score: 2, img: '🎒' },
+    { type: '🍏 表現加分', name: '好好的把飯吃完', score: 3, img: '🍱' },
+    { type: '🍏 表現加分', name: '照顧妹妹', score: 3, img: '👶' },
+    { type: '🍏 表現加分', name: '說話算話上樓直接洗澡', score: 5, img: '🛀' },
+    { type: '🍏 表現加分', name: '練習鋼琴 🎹', score: 5, img: '🎹' },
+    { type: '🍏 表現加分', name: '上鋼琴課專心', score: 10, img: '🎼' },
+    { type: '🎁 獎勵兌換', name: '指定外送', score: 10, img: '🛵' },
+    { type: '🎁 獎勵兌換', name: '指定假日去哪', score: 20, img: '🎡' },
+    { type: '🔻 扣分', name: '提醒後仍拖拖拉拉', score: 1, img: '⏰' }
+];
+
+let members = [];
+let items = [];
+let logs = []; // 歷史紀錄陣列
+let currentSelectedMemberIndex = 0; // 當前正在操作（高亮）的小孩
+let saveStatusTimer = null;
+let pendingActionIndex = null;
+let adminEditState = null; // { mode: 'member'|'item', idx: number }
+
+const encouragements = [
+    "No pain, no gain. 沒有付出，就沒有收穫。",
+    "Every day is a new beginning. 天天都是新的開始。",
+    "Believe in yourself. 相信你自己，你做得到的。",
+    "Practice makes perfect. 熟能生巧，越練習越厲害。",
+    "Never give up. 永不放棄，堅持到底就是勝利。",
+    "All things are difficult before they are easy. 萬事開頭難，越做會越簡單。",
+    "Where there is a will, there is a way. 有志者事竟成。",
+    "A journey of a thousand miles begins with a single step. 千里之行，始於足下。",
+    "Doing your best is more important than being the best. 盡力做好，比成為第一名更重要。",
+    "You are capable of amazing things. 你擁有創造奇蹟的能力。",
+    "Failure is the mother of success. 失敗為成功之母，勇敢再試一次。",
+    "Well begun is half done. 良好的開端是成功的一半。",
+    "It's not that I'm so smart, it's just that I stay with problems longer. 不是我聰明，只是我面對問題時停留得比較久。"
+];
+
+
+function speakText(text) {
+    if (!window.speechSynthesis) return;
+
+    // 1. 先把 HTML 標籤處理掉
+    let cleanText = text.replace(/<[^>]+>/g, '');
+    
+    // 2. 白名單過濾：只保留「中文、英文、數字、常見中英文標點符號與空格」
+    // 這樣鋼琴等 Emoji 會被完美洗掉，且英文諺語的標點符號（逗號、句點、驚嘆號）能正常留著斷句
+    cleanText = cleanText.replace(/[^\u4e00-\u9fa5a-zA-Z0-9',.!\s，。？！、]/g, ' ');
+
+    // 3. 清理前後多餘空格，如果沒文字就不唸
+    cleanText = cleanText.trim();
+    if (!cleanText) return;
+
+    // 4. 建立語音物件
+    const msg = new SpeechSynthesisUtterance(cleanText);
+    msg.lang = 'zh-TW';
+    msg.rate = 0.92;
+    msg.pitch = 1;
+    msg.volume = 1;
+
+    // 5. 尋找台灣美佳音
+    const voices = speechSynthesis.getVoices();
+    const voice = voices.find(v => v.name.includes('Mei-Jia'));
+    if (voice) {
+        msg.voice = voice;
+    }
+
+    // 6. 停止上一次的聲音，立即播放這一次
+    speechSynthesis.cancel();
+    speechSynthesis.speak(msg);
+}
+function toggleAddMember() {
+    const box = document.getElementById('addMemberBox');
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+
+function toggleAddItem() {
+    const box = document.getElementById('addItemBox');
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+
+// 初始化
+function init() {
+    const savedMembers = localStorage.getItem('family_members_v3');
+    const savedItems = localStorage.getItem('family_items_v3');
+    const savedLogs = localStorage.getItem('family_logs_v3');
+
+    if (savedMembers) members = JSON.parse(savedMembers);
+    else { members = JSON.parse(JSON.stringify(defaultMembers)); save(); }
+
+    if (savedItems) items = JSON.parse(savedItems);
+    else { items = JSON.parse(JSON.stringify(defaultItems)); save(); }
+
+    if (savedLogs) logs = JSON.parse(savedLogs).map(normalizeLog);
+    else { logs = []; save(); }
+
+    if (currentSelectedMemberIndex >= members.length) currentSelectedMemberIndex = 0;
+
+    renderFrontUI();
+}
+
+function normalizeLog(log) {
+    const rawText = String(log.text || '');
+    const parsedItem = log.itemName || (rawText.includes('—') ? rawText.split('—').pop().replace(/（.*?）/g, '').trim() : '');
+    const plusMatch = rawText.match(/獲得\s*(\d+)\s*分/);
+    const minusMatch = rawText.match(/-(\d+)\s*分/);
+    const parsedChange = Number(log.change) || (plusMatch ? Number(plusMatch[1]) : minusMatch ? -Number(minusMatch[1]) : 0);
+    const memberMatch = rawText.match(/<b>(.*?)<\/b>/);
+    return {
+        text: rawText,
+        time: log.time || '',
+        date: log.date || todayKey(),
+        memberName: log.memberName || (memberMatch ? memberMatch[1] : ''),
+        memberIndex: Number.isInteger(log.memberIndex) ? log.memberIndex : 0,
+        change: parsedChange,
+        itemName: parsedItem,
+        itemType: log.itemType || (parsedChange < 0 ? 'reward' : 'plus')
+    };
+}
+
+function itemKind(item) {
+    const type = String(item.type || '');
+    if (type.includes('扣分')) return 'deduct';
+    if (type.includes('兌換') || type.includes('獎勵')) return 'reward';
+    return 'plus';
+}
+
+function typeValue(kind) {
+    if (kind === 'reward') return '🎁 獎勵兌換';
+    if (kind === 'deduct') return '🔻 扣分';
+    return '🍏 表現加分';
+}
+
+function typeLabel(kind) {
+    if (kind === 'reward') return '兌換';
+    if (kind === 'deduct') return '扣分';
+    return '加分';
+}
+
+function scoreTagClass(kind) {
+    if (kind === 'deduct') return 'deduct-tag';
+    if (kind === 'reward') return 'minus-tag';
+    return 'plus-tag';
+}
+
+function save() {
+    try {
+        localStorage.setItem('family_members_v3', JSON.stringify(members));
+        localStorage.setItem('family_items_v3', JSON.stringify(items));
+        localStorage.setItem('family_logs_v3', JSON.stringify(logs.slice(-150)));
+        return true;
+    } catch (error) {
+        alert('儲存空間不足，請先匯出備份或清理舊紀錄。');
+        return false;
+    }
+}
+
+function showSavedStatus(text = '已儲存') {
+    const status = document.getElementById('saveStatus');
+    if (!status) return;
+    status.innerText = text;
+    clearTimeout(saveStatusTimer);
+    saveStatusTimer = setTimeout(() => status.innerText = '', 1600);
+}
+
+function adminPin() {
+    return localStorage.getItem('family_admin_pin_v1') || '1234';
+}
+
+function safeText(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[char]));
+}
+
+function safeAttr(value) {
+    return safeText(value).replace(/`/g, '&#96;');
+}
+
+function todayKey(date = new Date()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+function weekStartKey(date = new Date()) {
+    const copy = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const day = copy.getDay() || 7;
+    copy.setDate(copy.getDate() - day + 1);
+    return todayKey(copy);
+}
+
+function randomEncouragement(seed = 0) {
+    const index = Math.abs(seed) % encouragements.length;
+    return encouragements[index];
+}
+
+function currentMemberLogs() {
+    const member = members[currentSelectedMemberIndex];
+    if (!member) return [];
+    return logs.filter(log => log.memberName === member.name || log.memberIndex === currentSelectedMemberIndex);
+}
+
+function itemCountForMember(itemName, memberIndex = currentSelectedMemberIndex) {
+    const member = members[memberIndex];
+    if (!member) return 0;
+    return logs.filter(log =>
+        log.itemName === itemName &&
+        (log.memberName === member.name || log.memberIndex === memberIndex)
+    ).length;
+}
+
+function weeklyPlusCountForItem(itemName, memberIndex = currentSelectedMemberIndex) {
+    const member = members[memberIndex];
+    if (!member) return 0;
+    const start = weekStartKey();
+    return logs.filter(log =>
+        log.change > 0 &&
+        (log.date || todayKey()) >= start &&
+        log.itemName === itemName &&
+        (log.memberName === member.name || log.memberIndex === memberIndex)
+    ).length;
+}
+
+function currentStreakDays() {
+    const dates = new Set(currentMemberLogs().filter(log => log.change > 0).map(log => log.date || todayKey()));
+    let streak = 0;
+    const cursor = new Date();
+    while (dates.has(todayKey(cursor))) {
+        streak += 1;
+        cursor.setDate(cursor.getDate() - 1);
+    }
+    return streak;
+}
+
+function weeklyStats() {
+    const start = weekStartKey();
+    const rows = currentMemberLogs().filter(log => (log.date || todayKey()) >= start);
+    const plus = rows.filter(log => log.change > 0).reduce((sum, log) => sum + log.change, 0);
+    const minus = rows.filter(log => log.change < 0).reduce((sum, log) => sum + Math.abs(log.change), 0);
+    const topMap = {};
+    rows.forEach(log => {
+        if (!log.itemName) return;
+        topMap[log.itemName] = (topMap[log.itemName] || 0) + 1;
+    });
+    const top = Object.entries(topMap).sort((a, b) => b[1] - a[1])[0];
+    return { plus, minus, count: rows.length, topName: top ? top[0] : '尚未累積', topCount: top ? top[1] : 0 };
+}
+
+// 輔助：判斷並輸出圖片/Emoji HTML
+function getImgHTML(imgStr) {
+    if (!imgStr) return '✨';
+    if (imgStr.startsWith('http://') || imgStr.startsWith('https://') || imgStr.startsWith('data:image')) {
+        return `<img src="${imgStr}" class="preview-thumb" onerror="this.outerHTML='🖼️'">`;
+    }
+    return `<span class="icon-row">${Array.from(String(imgStr)).map(icon => `<span>${safeText(icon)}</span>`).join('')}</span>`;
+}
+
+function getCardImgHTML(imgStr) {
+    if (!imgStr) return '✨';
+    if (imgStr.startsWith('http://') || imgStr.startsWith('https://') || imgStr.startsWith('data:image')) {
+        return `<img src="${imgStr}" class="item-img" onerror="this.outerHTML='🖼️'">`;
+    }
+    return `<div class="item-img"><span class="icon-row">${Array.from(String(imgStr)).map(icon => `<span>${safeText(icon)}</span>`).join('')}</span></div>`;
+}
+
+// --- 前台渲染 ---
+function renderFrontUI() {
+    // 1. 置頂分數條
+    const board = document.getElementById('topScoreBoard');
+    board.innerHTML = '';
+    if (members.length === 0) {
+        board.innerHTML = '<div style="line-height:40px;">請點最下方進入後台添加成員</div>';
+    } else {
+        members.forEach((m, idx) => {
+            const isActive = idx === currentSelectedMemberIndex ? 'active' : '';
+            board.innerHTML += `
+                <div class="score-card ${isActive}" onclick="selectMember(${idx})">
+                    <span>${getImgHTML(m.img)} ${safeText(m.name)}</span>
+                    <span class="score-num" id="score-num-${idx}">${m.score}分</span>
+                </div>
+            `;
+        });
+    }
+
+    // 2. 依後台順序顯示項目
+    const sortedItems = [...items].map((item, originalIndex) => ({...item, originalIndex}));
+
+    // 3. 分類渲染項目卡片
+    const plusGrid = document.getElementById('frontPlusGrid');
+    const minusGrid = document.getElementById('frontMinusGrid');
+    const deductGrid = document.getElementById('frontDeductGrid');
+    plusGrid.innerHTML = '';
+    minusGrid.innerHTML = '';
+    deductGrid.innerHTML = '';
+
+    sortedItems.forEach(item => {
+        const kind = itemKind(item);
+        const isPlus = kind === 'plus';
+  const cardHTML = `
+            <div class="item-card" onclick="askConfirm(${item.originalIndex})">
+                ${getCardImgHTML(item.img)}
+                <div class="item-name">${safeText(item.name)}</div>
+                <div class="item-score-tag ${scoreTagClass(kind)}">
+                    ${isPlus ? '＋' : '－'}${item.score} 分
+                </div>
+                <div style="font-size:12px; color:#95a5a6; margin-top:6px;">已執行 ${itemCountForMember(item.name)} 次</div>
+            </div>
+        `;
+        if (isPlus) plusGrid.innerHTML += cardHTML;
+        else if (kind === 'reward') minusGrid.innerHTML += cardHTML;
+        else deductGrid.innerHTML += cardHTML;
+    });
+
+    if (!plusGrid.innerHTML) plusGrid.innerHTML = '<div class="empty" style="grid-column:1/-1;">尚無加分項目</div>';
+    if (!minusGrid.innerHTML) minusGrid.innerHTML = '<div class="empty" style="grid-column:1/-1;">尚無兌換項目</div>';
+    if (!deductGrid.innerHTML) deductGrid.innerHTML = '<div class="empty" style="grid-column:1/-1;">尚無扣分項目</div>';
+
+    // 4. 渲染流水帳歷史紀錄
+    const logListHTML = document.getElementById('historyList');
+    if (logs.length === 0) {
+        logListHTML.innerHTML = '<li class="history-item" style="color:#aaa; justify-content:center;">尚無任何變動紀錄</li>';
+    } else {
+        logListHTML.innerHTML = '';
+        // 從最新的紀錄開始顯示
+        [...logs].reverse().slice(0, 20).forEach(log => {
+            logListHTML.innerHTML += `
+                <li class="history-item">
+                    <span>${log.text}</span>
+                    <span class="hist-time">${safeText(log.time)}</span>
+                </li>
+            `;
+        });
+    }
+
+    renderWeeklyReview();
+}
+
+function renderWeeklyReview() {
+    const grid = document.getElementById('weeklyReviewGrid');
+    const box = document.getElementById('encourageBox');
+    if (!grid || !box) return;
+
+    const member = members[currentSelectedMemberIndex];
+    if (!member) {
+        grid.innerHTML = '<div class="empty" style="grid-column:1/-1;">請先新增成員。</div>';
+        box.innerText = '新增成員後，這裡會顯示本週回顧。';
+        return;
+    }
+
+    const plusItems = items.filter(item => itemKind(item) === 'plus');
+    grid.innerHTML = plusItems.map(item => `
+        <div class="insight-card">
+            <div class="insight-label">${getImgHTML(item.img)} ${safeText(item.name)}</div>
+            <div class="insight-value">${weeklyPlusCountForItem(item.name)} 次</div>
+        </div>
+    `).join('') || '<div class="empty" style="grid-column:1/-1;">尚無加分項目。</div>';
+
+   const totalWeeklyPlus = plusItems.reduce((sum, item) => sum + weeklyPlusCountForItem(item.name), 0);
+    const seed = totalWeeklyPlus + member.score + currentStreakDays() + todayKey().replaceAll('-', '').split('').reduce((a, b) => a + Number(b), 0);
+    
+    // 取得當天的隨機諺語
+    const dailyQuote = randomEncouragement(seed);
+    
+    // 🌟 修改：讓框框支援點擊，且外觀提示可以點擊朗讀
+    box.style.cursor = 'pointer';
+    box.innerHTML = `🔊 <b>今日金句：</b>${safeText(dailyQuote)}`;
+    
+    // 綁定點擊事件，點了就用中英文朗讀這句諺語
+    box.onclick = function() {
+        speakText(dailyQuote);
+    };
+}
+
+function selectMember(index) {
+    currentSelectedMemberIndex = index;
+    renderFrontUI();
+}
+
+function undoLastLog() {
+    if (logs.length === 0) {
+        alert('目前沒有可以復原的紀錄。');
+        return;
+    }
+
+    const last = logs[logs.length - 1];
+    const targetIndex = Number.isInteger(last.memberIndex)
+        ? last.memberIndex
+        : members.findIndex(m => m.name === last.memberName);
+
+    if (targetIndex < 0 || !members[targetIndex]) {
+        alert('找不到這筆紀錄對應的成員，無法復原。');
+        return;
+    }
+
+    if (!last.change) {
+        alert('這筆舊紀錄缺少分數資料，無法自動復原。');
+        return;
+    }
+
+    if (!confirm('確定要復原上一筆紀錄嗎？\n' + (last.memberName || members[targetIndex].name) + '：' + (last.change > 0 ? '+' : '') + last.change + ' 分')) return;
+
+    members[targetIndex].score -= Number(last.change) || 0;
+    logs.pop();
+    currentSelectedMemberIndex = targetIndex;
+    save();
+    renderFrontUI();
+}
+
+// --- 前台確認彈窗機制 ---
+function askConfirm(originalIndex) {
+    if (members.length === 0) return alert('請先進入後台建立成員！');
+    
+    const member = members[currentSelectedMemberIndex];
+    const item = items[originalIndex];
+    const kind = itemKind(item);
+    const isPlus = kind === 'plus';
+    
+    const modal = document.getElementById('confirmModal');
+    const confAvatar = document.getElementById('confAvatar');
+    const confText = document.getElementById('confText');
+    const execBtn = document.getElementById('confExecuteBtn');
+    pendingActionIndex = originalIndex;
+
+    // 顯示目標小孩的頭像
+    confAvatar.innerHTML = getImgHTML(member.img);
+    confText.classList.remove('warning');
+    
+    // 每次打開前先確保視窗背景是白色的
+    modal.querySelector('.modal-content').style.background = '#fff';
+
+    if (isPlus) {
+        confText.innerHTML = `確定幫 <span style="color:#6c5ce7;">${safeText(member.name)}</span><br>加分「${safeText(item.name)}」<br><span style="color:#2ecc71; font-size:24px; font-weight:900;">+ ${item.score} 分</span> 嗎？`;
+        execBtn.className = "btn-green";
+        execBtn.innerText = "確認加分";
+    } else {
+        if (kind === 'reward' && member.score < item.score) {
+            confText.classList.add('warning');
+            confText.innerHTML = `⚠️ 分數不足<br><span style="font-size:14px; color:#7f8c8d;">目前只有 ${member.score} 分，兌換後會變成 ${member.score - item.score} 分。</span><br>確定要讓 <span style="color:#6c5ce7;">${safeText(member.name)}</span><br>強制兌換「${safeText(item.name)}」<br><span style="color:#e74c3c; font-size:24px; font-weight:900;">- ${item.score} 分</span> 嗎？`;
+            execBtn.className = "btn-red";
+            execBtn.innerText = "確認負分兌換";
+        } else if (kind === 'deduct') {
+            confText.classList.add('warning');
+            modal.querySelector('.modal-content').style.background = '#fff0f0';
+            confText.innerHTML = `🚨 注意扣分<br><span style="color:#6c5ce7;">${safeText(member.name)}</span><br>「${safeText(item.name)}」<br><span style="color:#c0392b; font-size:26px; font-weight:900;">- ${item.score} 分</span>`;
+            execBtn.className = "btn-red";
+            execBtn.innerText = "確認扣分";
+        } else {
+            confText.innerHTML = `確定幫 <span style="color:#6c5ce7;">${safeText(member.name)}</span><br>兌換「${safeText(item.name)}」<br><span style="color:#e67e22; font-size:24px; font-weight:900;">- ${item.score} 分</span> 嗎？`;
+            execBtn.className = "btn-orange";
+            execBtn.innerText = "確認兌換";
+        }
+    }
+
+    // 綁定點擊事件去執行
+    execBtn.onclick = function() {
+        executeScore(pendingActionIndex);
+        closeConfirm();
+    };
+
+    modal.style.display = 'block';
+
+    // ===== 語音確認 =====
+    const actionWord = isPlus ? '加分' : (kind === 'reward' ? '兌換' : '扣分');
+    const speechText = `確定幫 ${member.name} ${actionWord} ${item.name} ${isPlus ? '加' : '扣'} ${item.score} 分嗎`;
+    speakText(speechText);
+}
+function closeConfirm() {
+    speechSynthesis.cancel();
+    document.getElementById('confirmModal').style.display = 'none';
+    document.getElementById('confText').classList.remove('warning');
+    const modalContent = document.querySelector('#confirmModal .modal-content');
+    if(modalContent) modalContent.style.background = '#fff';
+    
+    pendingActionIndex = null;
+}
+
+// 🌟 專為手機板優化：精準綁定「灰色遮罩層」的點擊與觸控取消事件
+// 這樣做可以百分之百保證：手機點白色框框外秒取消，點框框內按鈕正常運作
+setTimeout(() => {
+    const modalEl = document.getElementById('confirmModal');
+    if (modalEl) {
+        // 電腦滑鼠點擊
+        modalEl.addEventListener('click', function(event) {
+            if (event.target === modalEl) {
+                closeConfirm();
+            }
+        });
+        // 手機手指觸控
+        modalEl.addEventListener('touchstart', function(event) {
+            if (event.target === modalEl) {
+                event.preventDefault(); // 防止手機版雙擊縮放或事件穿透
+                closeConfirm();
+            }
+        });
+    }
+}, 500);
+
+// 真正執行加減分
+function executeScore(originalIndex) {
+    const member = members[currentSelectedMemberIndex];
+    const item = items[originalIndex];
+    const kind = itemKind(item);
+    const isPlus = kind === 'plus';
+    const scoreNumElement = document.getElementById(`score-num-${currentSelectedMemberIndex}`);
+    
+    const now = new Date();
+    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+
+    if (isPlus) {
+        member.score += item.score;
+        const projectedDates = new Set(currentMemberLogs().filter(log => log.change > 0).map(log => log.date || todayKey()));
+        projectedDates.add(todayKey(now));
+        let streakAfter = 0;
+        const streakCursor = new Date();
+        while (projectedDates.has(todayKey(streakCursor))) {
+            streakAfter += 1;
+            streakCursor.setDate(streakCursor.getDate() - 1);
+        }
+        // 寫入歷史紀錄
+        logs.push({
+            text: `🍏 <b>${safeText(member.name)}</b> 獲得 ${item.score} 分 — ${safeText(item.name)}（連續 ${streakAfter} 天）`,
+            time: timeStr,
+            date: todayKey(now),
+            memberName: member.name,
+            memberIndex: currentSelectedMemberIndex,
+            change: item.score,
+            itemName: item.name,
+            itemType: 'plus'
+        });
+        save();
+        
+        // 數字特效動畫
+        if (scoreNumElement) {
+            scoreNumElement.innerText = `${member.score}分`;
+            scoreNumElement.classList.add('animate-up');
+            setTimeout(() => scoreNumElement.classList.remove('animate-up'), 600);
+        }
+        
+        // ====== 🌟 新增：大拇指比讚飄出動畫 ======
+        const thumb = document.createElement('div');
+        thumb.innerText = '👍';
+        thumb.style.position = 'fixed';
+        thumb.style.left = '50%';
+        thumb.style.top = '60%';
+        thumb.style.transform = 'translate(-50%, -50%) scale(0.3)';
+        thumb.style.fontSize = '120px';
+        thumb.style.zIndex = '9999';
+        thumb.style.transition = 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        thumb.style.opacity = '0';
+        thumb.style.pointerEvents = 'none'; // 防止阻擋點擊
+        document.body.appendChild(thumb);
+
+        // 讓大拇指瞬間放大並向上飄移
+        requestAnimationFrame(() => {
+            thumb.style.transform = 'translate(-50%, -120%) scale(1.3)';
+            thumb.style.opacity = '1';
+        });
+
+        // 0.5 秒後大拇指淡出並消失，緊接著引爆原本的碎紙特效
+        setTimeout(() => {
+            thumb.style.transition = 'all 0.3s ease';
+            thumb.style.opacity = '0';
+            thumb.style.transform = 'translate(-50%, -160%) scale(1)';
+            
+            setTimeout(() => {
+                thumb.remove();
+                // 引爆原本的七彩碎紙特效
+                triggerTieredEffect(item.score, 'plus');
+            }, 300);
+        }, 500);
+        // ======================================
+
+const doneCount = itemCountForMember(item.name);
+        const praiseList = [
+            '你好棒！ Good job!',
+            '做得很好！ Excellent!',
+            '繼續加油！ Keep it up!',
+            '今天表現很棒！ You did amazing today!',
+            '越來越厲害了！ You are getting better and better!',
+            '有記得做到耶！ Wonderful!',
+            '太棒了成功完成！ Awesome job!',
+            'Great job! 你好棒！',
+            'Fantastic! 太棒了！',
+            'You are so cool! 你好帥好酷！'
+        ];
+        const praise = praiseList[Math.floor(Math.random() * praiseList.length)];
+        
+        // 🌟 修改：將讚美、項目名稱與完成次數組合成一句話，並交給語音朗讀
+        // 範例：你好棒！練習鋼琴已完成 5 次
+        const fullSpeechText = `${praise} ${item.name}已完成 ${doneCount} 次`;
+
+        setTimeout(() => {
+            speakText(fullSpeechText);
+        }, 900);
+
+        setTimeout(() => {
+            alert(`🎉 ${item.name}\n已完成 ${doneCount} 次\n\n${praise}`);
+        }, 1100); // 稍微延後彈出視窗，不擋到特效演繹
+
+    } else {
+        member.score -= item.score;
+        const logIcon = kind === 'deduct' ? '🔻' : '🎁';
+        const logVerb = kind === 'deduct' ? '扣分' : '兌換';
+        
+        // 寫入歷史紀錄
+        logs.push({
+            text: `${logIcon} <b>${safeText(member.name)}</b> ${logVerb} -${item.score} 分 — ${safeText(item.name)}`,
+            time: timeStr,
+            date: todayKey(now),
+            memberName: member.name,
+            memberIndex: currentSelectedMemberIndex,
+            change: -item.score,
+            itemName: item.name,
+            itemType: kind
+        });
+        save();
+
+        // 數字特效動畫
+        if (scoreNumElement) {
+            scoreNumElement.innerText = `${member.score}分`;
+            scoreNumElement.classList.add('animate-down');
+            setTimeout(() => scoreNumElement.classList.remove('animate-down'), 600);
+        }
+
+        triggerTieredEffect(item.score, kind);
+    }
+    
+    setTimeout(renderFrontUI, 400);
+}
+
+function triggerTieredEffect(score, kind) {
+    if (typeof confetti !== 'function') {
+        if (navigator.vibrate) navigator.vibrate(50);
+        return;
+    }
+
+    const isReward = kind === 'reward';
+    const isDeduct = kind === 'deduct';
+    const colors = isReward
+        ? ['#ffbb00', '#ff7675', '#e84393', '#fd79a8']
+        : isDeduct
+            ? ['#8e44ad', '#a29bfe', '#636e72', '#dfe6e9']
+        : ['#00b894', '#55efc4', '#74b9ff', '#ffeaa7'];
+
+    if (score <= 2) {
+        confetti({
+            particleCount: 26,
+            spread: 45,
+            startVelocity: 24,
+            origin: { x: 0.5, y: 0.72 },
+            colors
+        });
+        return;
+    }
+
+    if (score <= 5) {
+        confetti({ particleCount: 45, angle: 60, spread: 58, origin: { x: 0, y: 0.8 }, colors });
+        confetti({ particleCount: 45, angle: 120, spread: 58, origin: { x: 1, y: 0.8 }, colors });
+        return;
+    }
+
+    if (score <= 10) {
+        const end = Date.now() + 1400;
+        (function frame() {
+            confetti({ particleCount: 4, angle: 65, spread: 65, origin: { x: 0, y: 0.78 }, colors });
+            confetti({ particleCount: 4, angle: 115, spread: 65, origin: { x: 1, y: 0.78 }, colors });
+            confetti({ particleCount: 2, spread: 90, origin: { x: Math.random(), y: 0.25 }, colors });
+            if (Date.now() < end) requestAnimationFrame(frame);
+        }());
+        return;
+    }
+
+    const duration = 2300;
+    const end = Date.now() + duration;
+    (function frame() {
+        confetti({ particleCount: 7, angle: 60, spread: 70, origin: { x: 0, y: 0.82 }, colors });
+        confetti({ particleCount: 7, angle: 120, spread: 70, origin: { x: 1, y: 0.82 }, colors });
+        confetti({
+            particleCount: 18,
+            spread: 360,
+            startVelocity: 32,
+            origin: { x: Math.random() * 0.8 + 0.1, y: Math.random() * 0.35 + 0.1 },
+            colors
+        });
+        if (Date.now() < end) requestAnimationFrame(frame);
+    }());
+}
+
+
+// --- 後台管理邏輯 ---
+function openAdmin() {
+    const input = prompt('請輸入後台 PIN（預設 1234）');
+    if (input === null) return;
+    if (input !== adminPin()) {
+        alert('PIN 錯誤，無法進入後台。');
+        return;
+    }
+    document.getElementById('adminModal').style.display = 'block';
+    renderAdminUI();
+}
+
+function closeAdmin() {
+    document.getElementById('adminModal').style.display = 'none';
+    renderFrontUI();
+}
+
+function renderAdminUI() {
+    // 1. 後台人員列表
+    const memTable = document.getElementById('adminMemberTable');
+    const memCards = document.getElementById('adminMemberCards');
+    memTable.innerHTML = '';
+    memCards.innerHTML = '';
+    members.forEach((m, idx) => {
+        memTable.innerHTML += `
+            <tr>
+                <td>${getImgHTML(m.img)}</td>
+                <td><input type="text" value="${safeAttr(m.name)}" onchange="updateMember(${idx}, 'name', this.value)"></td>
+                <td><input type="text" value="${safeAttr(m.img)}" placeholder="圖片網址/Emoji" onchange="updateMember(${idx}, 'img', this.value)"></td>
+                <td>
+                    <button class="btn-sm btn-orange" onclick="updateMember(${idx}, 'score', 0)">歸零</button>
+                    <button class="btn-sm btn-red" onclick="deleteMember(${idx})">刪除</button>
+                </td>
+            </tr>
+        `;
+        memCards.innerHTML += `
+            <div class="admin-row-card">
+                <div class="admin-row-main">
+                    <div class="admin-row-title">${getImgHTML(m.img)} ${safeText(m.name)}</div>
+                    <div class="admin-row-sub">${m.score} 分</div>
+                </div>
+                <div class="admin-row-actions">
+                    <button class="btn-sm btn-blue" onclick="editMember(${idx})">修改</button>
+                </div>
+            </div>
+        `;
+    });
+
+    // 2. 後台項目列表
+    const itemTable = document.getElementById('adminItemTable');
+    const itemCards = document.getElementById('adminItemCards');
+    itemTable.innerHTML = '';
+    itemCards.innerHTML = '';
+    items.forEach((item, idx) => {
+        itemTable.innerHTML += `
+            <tr>
+                <td>${getImgHTML(item.img)}</td>
+                <td>
+                    <select onchange="updateItem(${idx}, 'type', this.value)">
+                        <option value="🍏 表現加分" ${item.type.includes('加分') ? 'selected' : ''}>加分</option>
+                        <option value="🎁 獎勵兌換" ${item.type.includes('獎勵') ? 'selected' : ''}>兌換</option>
+                        <option value="🔻 扣分" ${item.type.includes('扣分') ? 'selected' : ''}>扣分</option>
+                    </select>
+                </td>
+                <td><input type="text" value="${safeAttr(item.name)}" onchange="updateItem(${idx}, 'name', this.value)"></td>
+                <td><input type="number" style="width:55px;" value="${item.score}" onchange="updateItem(${idx}, 'score', this.value)"></td>
+                <td>
+                    <input type="text" style="width:80px; font-size:11px; margin-bottom:2px;" value="${safeAttr(item.img || '')}" placeholder="圖/Emoji" onchange="updateItem(${idx}, 'img', this.value)">
+                    <button class="btn-sm btn-red" onclick="deleteItem(${idx})">刪除</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    renderAdminItemGroup('🍏 加分項目', 'plus');
+    renderAdminItemGroup('🎁 兌換項目', 'reward');
+    renderAdminItemGroup('🔻 扣分項目', 'deduct');
+}
+
+function renderAdminItemGroup(title, kind) {
+    const itemCards = document.getElementById('adminItemCards');
+    const groupItems = items
+        .map((item, idx) => ({ item, idx }))
+        .filter(entry => itemKind(entry.item) === kind);
+
+    itemCards.innerHTML += `<div class="admin-group-title">${title}</div>`;
+
+    if (groupItems.length === 0) {
+        itemCards.innerHTML += '<div class="admin-row-card"><div class="admin-row-main"><div class="admin-row-sub">尚無項目</div></div></div>';
+        return;
+    }
+
+    groupItems.forEach(({ item, idx }) => {
+        itemCards.innerHTML += `
+            <div class="admin-row-card">
+                <div class="admin-row-main">
+                    <div class="admin-row-title">${getImgHTML(item.img)} ${safeText(item.name)}</div>
+                    <div class="admin-row-sub">${typeLabel(itemKind(item))}｜${item.score} 分</div>
+                </div>
+                <div class="admin-row-actions">
+                    <button class="btn-sm btn-gray" onclick="moveItem(${idx}, -1)">上</button>
+                    <button class="btn-sm btn-gray" onclick="moveItem(${idx}, 1)">下</button>
+                    <button class="btn-sm btn-blue" onclick="editItem(${idx})">修改</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function updateMember(idx, field, value) {
+    if (field === 'score') members[idx].score = parseInt(value) || 0;
+    else if (field === 'name') members[idx].name = value.trim();
+    else if (field === 'img') members[idx].img = value.trim();
+    save();
+    showSavedStatus();
+    renderAdminUI();
+}
+
+function openAdminEdit(mode, idx) {
+    if (mode === 'member') {
+        const member = members[idx];
+        if (!member) return;
+        adminEditState = { mode, idx };
+        document.getElementById('adminEditTitle').innerText = '修改成員';
+        document.getElementById('adminEditBody').innerHTML = `
+            <div class="admin-edit-field">
+                <label>名字</label>
+                <input type="text" id="editMemName" value="${safeAttr(member.name)}">
+            </div>
+            <div class="admin-edit-field">
+                <label>頭像（圖片網址或 Emoji）</label>
+                <input type="text" id="editMemImg" value="${safeAttr(member.img || '👶')}">
+            </div>
+            <div class="admin-edit-field">
+                <label>目前分數</label>
+                <input type="number" id="editMemScore" value="${member.score}">
+            </div>
+        `;
+    } else {
+        const item = items[idx];
+        if (!item) return;
+        const kind = itemKind(item);
+        adminEditState = { mode, idx };
+        document.getElementById('adminEditTitle').innerText = '修改項目';
+        document.getElementById('adminEditBody').innerHTML = `
+            <div class="admin-edit-field">
+                <label>項目名稱</label>
+                <input type="text" id="editItemName" value="${safeAttr(item.name)}">
+            </div>
+            <div class="admin-edit-field">
+                <label>類型</label>
+                <div class="admin-edit-type-row">
+                    <label class="admin-edit-type-opt">
+                        <input type="radio" name="editItemKind" value="plus" ${kind === 'plus' ? 'checked' : ''}> 加分
+                    </label>
+                    <label class="admin-edit-type-opt">
+                        <input type="radio" name="editItemKind" value="reward" ${kind === 'reward' ? 'checked' : ''}> 兌換
+                    </label>
+                    <label class="admin-edit-type-opt">
+                        <input type="radio" name="editItemKind" value="deduct" ${kind === 'deduct' ? 'checked' : ''}> 扣分
+                    </label>
+                </div>
+            </div>
+            <div class="admin-edit-field">
+                <label>數值</label>
+                <input type="number" id="editItemScore" value="${item.score}" min="1">
+            </div>
+            <div class="admin-edit-field">
+                <label>圖示（Emoji 或圖片網址）</label>
+                <input type="text" id="editItemImg" value="${safeAttr(item.img || '')}">
+            </div>
+        `;
+    }
+    document.getElementById('adminEditModal').style.display = 'block';
+}
+
+function closeAdminEdit() {
+    document.getElementById('adminEditModal').style.display = 'none';
+    adminEditState = null;
+}
+
+function saveAdminEdit() {
+    if (!adminEditState) return;
+    const { mode, idx } = adminEditState;
+
+    if (mode === 'member') {
+        const name = document.getElementById('editMemName').value.trim();
+        const img = document.getElementById('editMemImg').value.trim() || '👶';
+        const score = parseInt(document.getElementById('editMemScore').value, 10);
+        if (!name) return alert('名字不可空白');
+        if (isNaN(score)) return alert('分數請輸入數字');
+        members[idx].name = name;
+        members[idx].img = img;
+        members[idx].score = score;
+        save();
+        showSavedStatus('成員已修改');
+    } else {
+        const name = document.getElementById('editItemName').value.trim();
+        const kindInput = document.querySelector('input[name="editItemKind"]:checked');
+        const kind = kindInput ? kindInput.value : 'plus';
+        const score = Math.max(1, parseInt(document.getElementById('editItemScore').value, 10) || 1);
+        const imgVal = document.getElementById('editItemImg').value.trim();
+        if (!name) return alert('項目名稱不可空白');
+        items[idx].name = name;
+        items[idx].score = score;
+        items[idx].type = typeValue(kind);
+        items[idx].img = imgVal || (kind === 'plus' ? '🍏' : kind === 'reward' ? '🎁' : '🔻');
+        save();
+        showSavedStatus('項目已修改');
+    }
+
+    closeAdminEdit();
+    renderAdminUI();
+    renderFrontUI();
+}
+
+function adminEditDelete() {
+    if (!adminEditState) return;
+    const { mode, idx } = adminEditState;
+    closeAdminEdit();
+    if (mode === 'member') deleteMember(idx);
+    else deleteItem(idx);
+}
+
+function editMember(idx) {
+    openAdminEdit('member', idx);
+}
+
+function addMember() {
+    const name = document.getElementById('newMemName').value.trim();
+    let img = document.getElementById('newMemImg').value.trim();
+    if (!name) return alert('請輸入名字');
+    if (!img) img = '👶';
+    members.push({ name, score: 0, img });
+    save();
+    showSavedStatus('成員已新增');
+    document.getElementById('newMemName').value = '';
+    document.getElementById('newMemImg').value = '';
+    renderAdminUI();
+}
+
+function deleteMember(idx) {
+    if (confirm('確定要刪除這位成員嗎？（其分數也會消失）')) {
+        members.splice(idx, 1);
+        if (currentSelectedMemberIndex >= members.length) currentSelectedMemberIndex = Math.max(0, members.length - 1);
+        save();
+        showSavedStatus('成員已刪除');
+        renderAdminUI();
+    }
+}
+
+function updateItem(idx, field, value) {
+    if (field === 'score') items[idx].score = Math.max(1, parseInt(value) || 1);
+    else items[idx][field] = value;
+    save();
+    showSavedStatus();
+    renderAdminUI();
+}
+
+function editItem(idx) {
+    openAdminEdit('item', idx);
+}
+
+function moveItem(idx, direction) {
+    if (!items[idx]) return;
+    const currentKind = itemKind(items[idx]);
+    const sameKindIndices = items
+        .map((item, i) => (itemKind(item) === currentKind ? i : -1))
+        .filter(i => i >= 0);
+    const posInGroup = sameKindIndices.indexOf(idx);
+    if (posInGroup === -1) return;
+    const targetPos = posInGroup + direction;
+    if (targetPos < 0 || targetPos >= sameKindIndices.length) return;
+    const targetIdx = sameKindIndices[targetPos];
+    const temp = items[idx];
+    items[idx] = items[targetIdx];
+    items[targetIdx] = temp;
+    save();
+    showSavedStatus('順序已更新');
+    renderAdminUI();
+    renderFrontUI();
+}
+
+function addItem() {
+    const name = document.getElementById('newItemName').value.trim();
+    const score = parseInt(document.getElementById('newItemScore').value);
+    const type = document.getElementById('newItemType').value;
+    let img = document.getElementById('newItemImg').value.trim();
+    
+    if (!name || isNaN(score)) return alert('請完整填寫項目名稱與分數');
+    if (!img) img = type.includes('加分') ? '🍏' : type.includes('扣分') ? '🔻' : '🎁';
+
+    items.push({ type, name, score, img });
+    save();
+    showSavedStatus('項目已新增');
+    document.getElementById('newItemName').value = '';
+    document.getElementById('newItemScore').value = '';
+    document.getElementById('newItemImg').value = '';
+    renderAdminUI();
+}
+
+function deleteItem(idx) {
+    if (confirm('確定要刪除這個項目嗎？')) {
+        items.splice(idx, 1);
+        save();
+        showSavedStatus('項目已刪除');
+        renderAdminUI();
+    }
+}
+
+// 常規重置：分數與紀錄歸零
+function resetAllScores() {
+    if (confirm('確定要將全體成員的分數歸零，並清空歷史紀錄嗎？')) {
+        members.forEach(m => m.score = 0);
+        logs = [];
+        save();
+        showSavedStatus('已全體歸零');
+        renderAdminUI();
+        renderFrontUI();
+    }
+}
+
+function exportBackup() {
+    const payload = {
+        version: 3,
+        exportedAt: new Date().toISOString(),
+        members,
+        items,
+        logs
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'children-points-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function importBackup(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        try {
+            const data = JSON.parse(event.target.result);
+            if (!Array.isArray(data.members) || !Array.isArray(data.items)) throw new Error('bad backup');
+            if (!confirm('匯入備份會覆蓋目前成員、項目與紀錄，確定繼續嗎？')) return;
+
+            members = data.members.map(m => ({
+                name: String(m.name || '未命名'),
+                score: parseInt(m.score) || 0,
+                img: String(m.img || '👶')
+            }));
+            items = data.items.map(item => ({
+                type: String(item.type || '').includes('扣分') ? '🔻 扣分' : String(item.type || '').includes('兌換') ? '🎁 獎勵兌換' : '🍏 表現加分',
+                name: String(item.name || '未命名項目'),
+                score: Math.max(1, parseInt(item.score) || 1),
+                img: String(item.img || '')
+            }));
+            logs = Array.isArray(data.logs) ? data.logs.map(normalizeLog).slice(-150) : [];
+            currentSelectedMemberIndex = 0;
+            save();
+            showSavedStatus('備份已匯入');
+            renderAdminUI();
+            renderFrontUI();
+            alert('備份匯入完成。');
+        } catch (error) {
+            alert('備份檔格式不正確，請選擇此系統匯出的 JSON 檔。');
+        } finally {
+            input.value = '';
+        }
+    };
+    reader.readAsText(file);
+}
+
+function changeAdminPin() {
+    const pin = document.getElementById('newAdminPin').value.trim();
+    if (!/^[0-9]{4,8}$/.test(pin)) {
+        alert('PIN 請輸入 4 到 8 位數字。');
+        return;
+    }
+    localStorage.setItem('family_admin_pin_v1', pin);
+    document.getElementById('newAdminPin').value = '';
+    showSavedStatus('PIN 已更新');
+    alert('後台 PIN 已更新，請記得保存。');
+}
+
+// 超級一鍵還原（拉開遠遠的）
+function clearEverything() {
+    if (confirm('💥 注意！這是【原廠徹底重置】！\n這會刪除你建立的所有客製化小孩、自訂項目和全部紀錄，並回復到剛下載時的初始狀態。確定要執行嗎？')) {
+        localStorage.removeItem('family_members_v3');
+        localStorage.removeItem('family_items_v3');
+        localStorage.removeItem('family_logs_v3');
+        localStorage.removeItem('family_admin_pin_v1');
+        logs = [];
+        init();
+        closeAdmin();
+        alert('系統已恢復到最初預設狀態！');
+    }
+}
+
+// 點擊彈窗外部可關閉彈窗
+window.onclick = function(event) {
+    const confModal = document.getElementById('confirmModal');
+    const adminModal = document.getElementById('adminModal');
+    const adminEditModal = document.getElementById('adminEditModal');
+    if (event.target == confModal) closeConfirm();
+    if (event.target == adminEditModal) closeAdminEdit();
+    if (event.target == adminModal) closeAdmin();
+}
+
+window.onload = init;
+</script>
+</body>
+</html>

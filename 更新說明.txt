@@ -1,0 +1,50 @@
+兒童行為集點管理系統 - Netlify 更新說明
+
+網站：https://heartfelt-paprenjak-213014.netlify.app/
+
+═══════════════════════════════════════
+【推薦】Git 連 GitHub → Netlify 自動部署
+═══════════════════════════════════════
+
+第一次設定（只需做一次）：
+
+A. 上傳到 GitHub
+   1. 登入 https://github.com  → New repository
+   2. 名稱例如：family-points-app（不要勾 README）
+   3. 在本資料夾開終端機，依序執行（把 YOUR_NAME 改成你的 GitHub 帳號）：
+
+      git remote add origin https://github.com/YOUR_NAME/family-points-app.git
+      git branch -M main
+      git push -u origin main
+
+B. Netlify 連結 Git（現有網站 heartfelt-paprenjak-213014）
+   1. 登入 https://app.netlify.com
+   2. 點你的網站 → Site configuration → Build & deploy
+   3. Link repository → 選 GitHub → 授權 → 選剛建立的 repo
+   4. 設定確認：
+      - Branch: main
+      - Build command: （留空）
+      - Publish directory: . （一個點，代表根目錄）
+   5. Deploy site
+
+之後每次更新：
+   1. 修改 index.html
+   2. git add .
+   3. git commit -m "更新說明"
+   4. git push
+   → Netlify 會自動重新部署，約 1～2 分鐘完成。
+
+═══════════════════════════════════════
+【備用】手動拖曳上傳（未連 Git 時）
+═══════════════════════════════════════
+
+1. 修改 index.html
+2. Netlify → heartfelt-paprenjak-213014 → Deploys
+3. 把「整個資料夾」拖到上傳區
+4. 等 Published 後重新整理網站
+
+重要提醒：
+- 主要檔案必須叫 index.html
+- 手動上傳請拖整個資料夾，不要只拖單一 HTML
+- 手機若沒更新：重新整理或關掉分頁再開
+
