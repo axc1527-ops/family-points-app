@@ -1,6 +1,14 @@
 兒童行為集點管理系統 - Netlify 更新說明
 
-網站：https://heartfelt-paprenjak-213014.netlify.app/
+網站（Netlify，額度用完會暫停）：
+https://heartfelt-paprenjak-213014.netlify.app/
+
+網站（GitHub Pages 備用，建議家人改用這個）：
+https://axc1527-ops.github.io/family-points-app/
+
+第一次啟用 GitHub Pages：
+GitHub 倉庫 → Settings → Pages → Build and deployment 選 GitHub Actions
+→ 雙擊 upload.bat 推送後約 2 分鐘即可開啟上面網址
 
 ═══════════════════════════════════════
 【推薦】Git 連 GitHub → Netlify 自動部署
