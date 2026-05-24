@@ -265,6 +265,101 @@
             font-weight: bold;
             line-height: 1.45;
         }
+        .tiny-danger {
+            color: #c0392b;
+            border-color: #f5b7b1;
+            font-size: 11px;
+            padding: 4px 7px;
+        }
+        .weekly-cleared-hint {
+            font-size: 11px;
+            color: #e67e22;
+            text-align: center;
+            margin: 6px 0 2px;
+            font-weight: bold;
+        }
+        .daily-score-block {
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px dashed #ececec;
+        }
+        .daily-score-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        .daily-score-hint {
+            font-size: 11px;
+            color: #95a5a6;
+            font-weight: normal;
+        }
+        .week-days-row {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 4px;
+        }
+        .day-cell {
+            border: 1px solid #e8e8e8;
+            border-radius: 10px;
+            padding: 7px 2px;
+            background: #fff;
+            cursor: pointer;
+            text-align: center;
+            min-width: 0;
+        }
+        .day-cell:active { transform: scale(0.97); }
+        .day-label {
+            font-size: 10px;
+            color: #7f8c8d;
+            font-weight: bold;
+        }
+        .day-date {
+            font-size: 9px;
+            color: #bdc3c7;
+            margin-top: 1px;
+        }
+        .day-score {
+            font-size: 13px;
+            font-weight: 900;
+            margin-top: 4px;
+            line-height: 1.1;
+        }
+        .day-pos .day-score { color: #27ae60; }
+        .day-neg .day-score { color: #e74c3c; }
+        .day-zero .day-score { color: #bdc3c7; }
+        .day-today {
+            border-color: #6c5ce7;
+            background: #f8f7ff;
+            box-shadow: 0 0 0 1px rgba(108, 92, 231, 0.15);
+        }
+        .daily-event-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+        .daily-event-item {
+            padding: 10px 8px;
+            border-bottom: 1px dashed #eee;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #2c3e50;
+        }
+        .daily-event-item:last-child { border-bottom: none; }
+        .daily-event-time {
+            display: block;
+            font-size: 11px;
+            color: #95a5a6;
+            margin-top: 4px;
+        }
+        .daily-event-empty {
+            text-align: center;
+            color: #aaa;
+            padding: 24px 10px;
+            font-size: 14px;
+        }
 
         /* 通用彈窗樣式 (Modal) */
         .modal {
@@ -537,6 +632,17 @@
         }
         .admin-edit-footer .btn-edit-save:hover { background: #27ae60; }
 
+        .voice-range {
+            width: 100%;
+            margin: 4px 0 0;
+            accent-color: #6c5ce7;
+        }
+        .voice-range-val {
+            float: right;
+            color: #6c5ce7;
+            font-weight: bold;
+        }
+
         /* 底層進入後台小字 */
         .footer-link {
             text-align: center;
@@ -636,8 +742,18 @@
 
     <!-- 前台：統計與本週回顧 -->
     <div class="insight-section">
-        <div class="history-title">🌟 本週回顧</div>
+        <div class="history-title">
+            <span>🌟 本週回顧</span>
+            <span class="history-tools">
+                <button type="button" class="tiny-action tiny-danger" onclick="resetWeeklyStatsWithPin()">本週統計歸零</button>
+            </span>
+        </div>
+        <div id="weeklyClearedHint" class="weekly-cleared-hint" style="display:none;"></div>
         <div class="insight-grid" id="weeklyReviewGrid"></div>
+        <div class="daily-score-block">
+            <div class="daily-score-title">📅 每日得分 <span class="daily-score-hint">（點日期查看事件）</span></div>
+            <div class="week-days-row" id="weekDaysRow"></div>
+        </div>
         <div class="encourage-box" id="encourageBox">今天也很棒，慢慢累積就會變很多。</div>
     </div>
 </div>
@@ -645,6 +761,17 @@
 <!-- 最底層進入後台小字 -->
 <div class="footer-link" onclick="openAdmin()">⚙️ 系統管理入口</div>
 
+
+<!-- 【彈窗】前台：每日事件 -->
+<div id="dailyDetailModal" class="modal">
+    <div class="modal-content" style="max-width: 400px; margin-top: 80px;">
+        <span class="close-modal" onclick="closeDailyDetail()">&times;</span>
+        <h3 id="dailyDetailTitle" style="margin:0 0 12px; text-align:center; color:#2c3e50; font-size:17px;">每日事件</h3>
+        <div id="dailyDetailSummary" style="text-align:center; font-weight:bold; margin-bottom:10px; color:#636e72;"></div>
+        <ul class="daily-event-list" id="dailyDetailList"></ul>
+        <button type="button" class="btn-block" style="margin-top:12px; background:#ecf0f1; color:#636e72; font-weight:bold; border:none; border-radius:10px; padding:12px; cursor:pointer;" onclick="closeDailyDetail()">關閉</button>
+    </div>
+</div>
 
 <!-- 【彈窗一】前台：加減分確認視窗 -->
 <div id="confirmModal" class="modal">
@@ -719,6 +846,26 @@
             <div class="admin-mini-list" id="adminItemCards"></div>
         </div>
 
+        <!-- 2b. 語音設定 -->
+        <div class="admin-section">
+            <h3>🔊 語音設定</h3>
+            <div class="admin-edit-field">
+                <label>語音包</label>
+                <select id="voicePackSelect" onchange="setVoiceSetting('voiceURI', this.value)"></select>
+            </div>
+            <div class="admin-edit-field">
+                <label>語調 <span class="voice-range-val" id="voicePitchVal">1.0</span></label>
+                <input type="range" class="voice-range" id="voicePitch" min="0.5" max="2" step="0.1" value="1"
+                    oninput="setVoiceSetting('pitch', this.value)">
+            </div>
+            <div class="admin-edit-field">
+                <label>大小聲 <span class="voice-range-val" id="voiceVolumeVal">100%</span></label>
+                <input type="range" class="voice-range" id="voiceVolume" min="0" max="1" step="0.05" value="1"
+                    oninput="setVoiceSetting('volume', this.value)">
+            </div>
+            <button type="button" class="btn-blue btn-block" style="margin-top:6px;" onclick="previewVoiceSettings()">🔊 試聽</button>
+        </div>
+
         <!-- 3. 系統歸零 -->
         <div class="admin-section" style="border: 1px solid #f5b7b1; background:#fdf2f2;">
             <h3 style="color: #c0392b; margin-bottom:4px; font-size:13px;">⚠️ 進階功能</h3>
@@ -763,6 +910,13 @@ const defaultMembers = [
     { name: 'Lucy', score: 0, img: '👧' }
 ];
 
+const defaultVoiceSettings = {
+    voiceURI: '',
+    pitch: 1,
+    volume: 1,
+    rate: 0.92
+};
+
 const defaultItems = [
     { type: '🍏 表現加分', name: '碗和水壺 換衣服', score: 2, img: '🎒' },
     { type: '🍏 表現加分', name: '好好的把飯吃完', score: 3, img: '🍱' },
@@ -782,6 +936,7 @@ let currentSelectedMemberIndex = 0; // 當前正在操作（高亮）的小孩
 let saveStatusTimer = null;
 let pendingActionIndex = null;
 let adminEditState = null; // { mode: 'member'|'item', idx: number }
+let voiceSettings = { ...defaultVoiceSettings };
 
 const encouragements = [
     "No pain, no gain. 沒有付出，就沒有收穫。",
@@ -800,37 +955,114 @@ const encouragements = [
 ];
 
 
+function loadVoiceSettings() {
+    const saved = localStorage.getItem('family_voice_settings_v1');
+    if (!saved) {
+        voiceSettings = { ...defaultVoiceSettings };
+        return;
+    }
+    try {
+        voiceSettings = { ...defaultVoiceSettings, ...JSON.parse(saved) };
+    } catch (error) {
+        voiceSettings = { ...defaultVoiceSettings };
+    }
+}
+
+function saveVoiceSettings() {
+    localStorage.setItem('family_voice_settings_v1', JSON.stringify(voiceSettings));
+}
+
+function getSpeechVoices() {
+    if (!window.speechSynthesis) return [];
+    return speechSynthesis.getVoices().filter(v =>
+        /^zh/i.test(v.lang) || /chinese|mandarin|taiwan|cantonese|yue/i.test(v.name)
+    );
+}
+
+function resolveSpeechVoice(voices) {
+    if (voiceSettings.voiceURI) {
+        const picked = voices.find(v => v.voiceURI === voiceSettings.voiceURI);
+        if (picked) return picked;
+    }
+    return voices.find(v => v.name.includes('Mei-Jia'))
+        || voices.find(v => /^zh-TW/i.test(v.lang))
+        || voices.find(v => /^zh/i.test(v.lang));
+}
+
 function speakText(text) {
     if (!window.speechSynthesis) return;
 
-    // 1. 先把 HTML 標籤處理掉
     let cleanText = text.replace(/<[^>]+>/g, '');
-    
-    // 2. 白名單過濾：只保留「中文、英文、數字、常見中英文標點符號與空格」
-    // 這樣鋼琴等 Emoji 會被完美洗掉，且英文諺語的標點符號（逗號、句點、驚嘆號）能正常留著斷句
     cleanText = cleanText.replace(/[^\u4e00-\u9fa5a-zA-Z0-9',.!\s，。？！、]/g, ' ');
-
-    // 3. 清理前後多餘空格，如果沒文字就不唸
     cleanText = cleanText.trim();
     if (!cleanText) return;
 
-    // 4. 建立語音物件
     const msg = new SpeechSynthesisUtterance(cleanText);
     msg.lang = 'zh-TW';
-    msg.rate = 0.92;
-    msg.pitch = 1;
-    msg.volume = 1;
+    msg.rate = Number(voiceSettings.rate) || 0.92;
+    msg.pitch = Math.min(2, Math.max(0.5, Number(voiceSettings.pitch) || 1));
+    msg.volume = Math.min(1, Math.max(0, Number(voiceSettings.volume) ?? 1));
 
-    // 5. 尋找台灣美佳音
-    const voices = speechSynthesis.getVoices();
-    const voice = voices.find(v => v.name.includes('Mei-Jia'));
+    const voice = resolveSpeechVoice(speechSynthesis.getVoices());
     if (voice) {
         msg.voice = voice;
+        msg.lang = voice.lang || 'zh-TW';
     }
 
-    // 6. 停止上一次的聲音，立即播放這一次
     speechSynthesis.cancel();
     speechSynthesis.speak(msg);
+}
+
+function setVoiceSetting(key, value) {
+    if (key === 'pitch') voiceSettings.pitch = parseFloat(value);
+    else if (key === 'volume') voiceSettings.volume = parseFloat(value);
+    else if (key === 'voiceURI') voiceSettings.voiceURI = value;
+    saveVoiceSettings();
+    syncVoiceAdminUI();
+    showSavedStatus('語音已儲存');
+}
+
+function syncVoiceAdminUI() {
+    const pitchInput = document.getElementById('voicePitch');
+    const volumeInput = document.getElementById('voiceVolume');
+    const pitchVal = document.getElementById('voicePitchVal');
+    const volumeVal = document.getElementById('voiceVolumeVal');
+    const packSelect = document.getElementById('voicePackSelect');
+
+    if (pitchInput) pitchInput.value = voiceSettings.pitch;
+    if (volumeInput) volumeInput.value = voiceSettings.volume;
+    if (pitchVal) pitchVal.innerText = (Number(voiceSettings.pitch) || 1).toFixed(1);
+    if (volumeVal) volumeVal.innerText = Math.round((Number(voiceSettings.volume) || 1) * 100) + '%';
+    if (packSelect && packSelect.options.length) packSelect.value = voiceSettings.voiceURI || '';
+}
+
+function populateVoicePackSelect() {
+    const sel = document.getElementById('voicePackSelect');
+    if (!sel) return;
+
+    const voices = getSpeechVoices();
+    const savedURI = voiceSettings.voiceURI || '';
+    let html = '<option value="">預設（台灣美嘉 Mei-Jia）</option>';
+
+    voices.forEach(v => {
+        html += `<option value="${safeAttr(v.voiceURI)}">${safeText(v.name)} (${safeText(v.lang)})</option>`;
+    });
+
+    if (savedURI && !voices.some(v => v.voiceURI === savedURI)) {
+        html += `<option value="${safeAttr(savedURI)}">已儲存的語音（目前裝置無法載入）</option>`;
+    }
+
+    sel.innerHTML = html;
+    sel.value = savedURI;
+}
+
+function renderAdminVoiceUI() {
+    populateVoicePackSelect();
+    syncVoiceAdminUI();
+}
+
+function previewVoiceSettings() {
+    speakText('這是語音試聽，你好棒，繼續加油。');
 }
 function toggleAddMember() {
     const box = document.getElementById('addMemberBox');
@@ -857,9 +1089,19 @@ function init() {
     if (savedLogs) logs = JSON.parse(savedLogs).map(normalizeLog);
     else { logs = []; save(); }
 
+    loadVoiceSettings();
+
     if (currentSelectedMemberIndex >= members.length) currentSelectedMemberIndex = 0;
 
     renderFrontUI();
+}
+
+if (window.speechSynthesis) {
+    speechSynthesis.addEventListener('voiceschanged', () => {
+        if (document.getElementById('adminModal')?.style.display === 'block') {
+            renderAdminVoiceUI();
+        }
+    });
 }
 
 function normalizeLog(log) {
@@ -958,6 +1200,130 @@ function weekStartKey(date = new Date()) {
     return todayKey(copy);
 }
 
+function weekEndKey(date = new Date()) {
+    const copy = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const day = copy.getDay() || 7;
+    copy.setDate(copy.getDate() - day + 7);
+    return todayKey(copy);
+}
+
+function getWeekDayDates(date = new Date()) {
+    const labels = ['週一', '週二', '週三', '週四', '週五', '週六', '週日'];
+    const ws = weekStartKey(date);
+    const [y, m, d] = ws.split('-').map(Number);
+    const monday = new Date(y, m - 1, d);
+    const today = todayKey(date);
+    return labels.map((label, i) => {
+        const dt = new Date(monday);
+        dt.setDate(monday.getDate() + i);
+        const key = todayKey(dt);
+        return {
+            key,
+            label,
+            shortDate: `${dt.getMonth() + 1}/${dt.getDate()}`,
+            isToday: key === today
+        };
+    });
+}
+
+function isWeeklyStatsCleared(memberIndex = currentSelectedMemberIndex) {
+    const member = members[memberIndex];
+    if (!member) return false;
+    return member.weeklyClearedWeek === weekStartKey();
+}
+
+function dailyNetChange(dateKey, memberIndex = currentSelectedMemberIndex) {
+    const member = members[memberIndex];
+    if (!member) return 0;
+    return logs
+        .filter(log =>
+            (log.date || todayKey()) === dateKey &&
+            (log.memberName === member.name || log.memberIndex === memberIndex)
+        )
+        .reduce((sum, log) => sum + (Number(log.change) || 0), 0);
+}
+
+function dailyLogsForDate(dateKey, memberIndex = currentSelectedMemberIndex) {
+    const member = members[memberIndex];
+    if (!member) return [];
+    return logs
+        .filter(log =>
+            (log.date || todayKey()) === dateKey &&
+            (log.memberName === member.name || log.memberIndex === memberIndex)
+        )
+        .slice()
+        .reverse();
+}
+
+function promptPinOk() {
+    const input = prompt('請輸入 PIN');
+    if (input === null) return false;
+    if (input !== adminPin()) {
+        alert('PIN 錯誤。');
+        return false;
+    }
+    return true;
+}
+
+function resetWeeklyStatsWithPin() {
+    const member = members[currentSelectedMemberIndex];
+    if (!member) return alert('請先選擇成員。');
+    if (!promptPinOk()) return;
+    if (!confirm(`確定將「${member.name}」的本週統計歸零？\n（總分不變，本週回顧數字歸零；每日得分仍可查看事件）`)) return;
+    member.weeklyClearedWeek = weekStartKey();
+    save();
+    renderFrontUI();
+}
+
+function renderWeekDaysRow() {
+    const row = document.getElementById('weekDaysRow');
+    if (!row) return;
+    const member = members[currentSelectedMemberIndex];
+    if (!member) {
+        row.innerHTML = '<div style="grid-column:1/-1; color:#aaa; font-size:12px; text-align:center;">請先新增成員</div>';
+        return;
+    }
+    row.innerHTML = getWeekDayDates().map(day => {
+        const net = dailyNetChange(day.key);
+        const scoreText = net > 0 ? `+${net}` : String(net);
+        const tone = net > 0 ? 'day-pos' : net < 0 ? 'day-neg' : 'day-zero';
+        return `
+            <button type="button" class="day-cell ${tone} ${day.isToday ? 'day-today' : ''}" onclick="openDailyDetail('${day.key}')">
+                <div class="day-label">${day.label}</div>
+                <div class="day-date">${day.shortDate}</div>
+                <div class="day-score">${scoreText}</div>
+            </button>
+        `;
+    }).join('');
+}
+
+function openDailyDetail(dateKey) {
+    const member = members[currentSelectedMemberIndex];
+    if (!member) return;
+    const dayInfo = getWeekDayDates().find(d => d.key === dateKey);
+    const events = dailyLogsForDate(dateKey);
+    const net = dailyNetChange(dateKey);
+    const netText = net > 0 ? `本日淨得 +${net} 分` : net < 0 ? `本日淨得 ${net} 分` : '本日尚無分數變動';
+
+    document.getElementById('dailyDetailTitle').innerText =
+        `${member.name}｜${dayInfo ? dayInfo.label : ''} ${dateKey}`;
+    document.getElementById('dailyDetailSummary').innerText = netText;
+
+    const list = document.getElementById('dailyDetailList');
+    if (events.length === 0) {
+        list.innerHTML = '<li class="daily-event-empty">這天還沒有任何事件</li>';
+    } else {
+        list.innerHTML = events.map(log => `
+            <li class="daily-event-item">${log.text || '（無說明）'}<span class="daily-event-time">${safeText(log.time || '')}</span></li>
+        `).join('');
+    }
+    document.getElementById('dailyDetailModal').style.display = 'block';
+}
+
+function closeDailyDetail() {
+    document.getElementById('dailyDetailModal').style.display = 'none';
+}
+
 function randomEncouragement(seed = 0) {
     const index = Math.abs(seed) % encouragements.length;
     return encouragements[index];
@@ -981,6 +1347,7 @@ function itemCountForMember(itemName, memberIndex = currentSelectedMemberIndex) 
 function weeklyPlusCountForItem(itemName, memberIndex = currentSelectedMemberIndex) {
     const member = members[memberIndex];
     if (!member) return 0;
+    if (isWeeklyStatsCleared(memberIndex)) return 0;
     const start = weekStartKey();
     return logs.filter(log =>
         log.change > 0 &&
@@ -1002,6 +1369,9 @@ function currentStreakDays() {
 }
 
 function weeklyStats() {
+    if (isWeeklyStatsCleared()) {
+        return { plus: 0, minus: 0, count: 0, topName: '本週已歸零', topCount: 0 };
+    }
     const start = weekStartKey();
     const rows = currentMemberLogs().filter(log => (log.date || todayKey()) >= start);
     const plus = rows.filter(log => log.change > 0).reduce((sum, log) => sum + log.change, 0);
@@ -1107,13 +1477,22 @@ function renderFrontUI() {
 function renderWeeklyReview() {
     const grid = document.getElementById('weeklyReviewGrid');
     const box = document.getElementById('encourageBox');
+    const clearedHint = document.getElementById('weeklyClearedHint');
     if (!grid || !box) return;
 
     const member = members[currentSelectedMemberIndex];
     if (!member) {
         grid.innerHTML = '<div class="empty" style="grid-column:1/-1;">請先新增成員。</div>';
         box.innerText = '新增成員後，這裡會顯示本週回顧。';
+        if (clearedHint) clearedHint.style.display = 'none';
+        renderWeekDaysRow();
         return;
+    }
+
+    const cleared = isWeeklyStatsCleared();
+    if (clearedHint) {
+        clearedHint.style.display = cleared ? 'block' : 'none';
+        clearedHint.innerText = cleared ? '📌 本週統計已歸零（總分不變；新週一自動重新累計）' : '';
     }
 
     const plusItems = items.filter(item => itemKind(item) === 'plus');
@@ -1123,6 +1502,8 @@ function renderWeeklyReview() {
             <div class="insight-value">${weeklyPlusCountForItem(item.name)} 次</div>
         </div>
     `).join('') || '<div class="empty" style="grid-column:1/-1;">尚無加分項目。</div>';
+
+    renderWeekDaysRow();
 
    const totalWeeklyPlus = plusItems.reduce((sum, item) => sum + weeklyPlusCountForItem(item.name), 0);
     const seed = totalWeeklyPlus + member.score + currentStreakDays() + todayKey().replaceAll('-', '').split('').reduce((a, b) => a + Number(b), 0);
@@ -1533,6 +1914,8 @@ function renderAdminUI() {
     renderAdminItemGroup('🍏 加分項目', 'plus');
     renderAdminItemGroup('🎁 兌換項目', 'reward');
     renderAdminItemGroup('🔻 扣分項目', 'deduct');
+
+    renderAdminVoiceUI();
 }
 
 function renderAdminItemGroup(title, kind) {
@@ -1784,7 +2167,8 @@ function exportBackup() {
         exportedAt: new Date().toISOString(),
         members,
         items,
-        logs
+        logs,
+        voiceSettings
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1811,7 +2195,8 @@ function importBackup(input) {
             members = data.members.map(m => ({
                 name: String(m.name || '未命名'),
                 score: parseInt(m.score) || 0,
-                img: String(m.img || '👶')
+                img: String(m.img || '👶'),
+                weeklyClearedWeek: m.weeklyClearedWeek || ''
             }));
             items = data.items.map(item => ({
                 type: String(item.type || '').includes('扣分') ? '🔻 扣分' : String(item.type || '').includes('兌換') ? '🎁 獎勵兌換' : '🍏 表現加分',
@@ -1820,6 +2205,10 @@ function importBackup(input) {
                 img: String(item.img || '')
             }));
             logs = Array.isArray(data.logs) ? data.logs.map(normalizeLog).slice(-150) : [];
+            if (data.voiceSettings && typeof data.voiceSettings === 'object') {
+                voiceSettings = { ...defaultVoiceSettings, ...data.voiceSettings };
+                saveVoiceSettings();
+            }
             currentSelectedMemberIndex = 0;
             save();
             showSavedStatus('備份已匯入');
@@ -1854,6 +2243,7 @@ function clearEverything() {
         localStorage.removeItem('family_items_v3');
         localStorage.removeItem('family_logs_v3');
         localStorage.removeItem('family_admin_pin_v1');
+        localStorage.removeItem('family_voice_settings_v1');
         logs = [];
         init();
         closeAdmin();
@@ -1866,9 +2256,11 @@ window.onclick = function(event) {
     const confModal = document.getElementById('confirmModal');
     const adminModal = document.getElementById('adminModal');
     const adminEditModal = document.getElementById('adminEditModal');
+    const dailyModal = document.getElementById('dailyDetailModal');
     if (event.target == confModal) closeConfirm();
     if (event.target == adminEditModal) closeAdminEdit();
     if (event.target == adminModal) closeAdmin();
+    if (event.target == dailyModal) closeDailyDetail();
 }
 
 window.onload = init;
