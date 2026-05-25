@@ -107,8 +107,8 @@
     .song-list {
       display: grid;
       gap: 8px;
-      max-height: 470px;
-      overflow: auto;
+      max-height: 320px;
+      overflow-y: auto;
       padding-right: 4px;
     }
 
@@ -142,6 +142,22 @@
       margin-top: 3px;
       font-size: 13px;
       color: var(--muted);
+    }
+
+    /* 新增歌曲表單樣式 */
+    .add-song-form {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 2px dashed #cfd8dc;
+      text-align: left;
+    }
+    .add-song-form input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 8px;
+      border: 2px solid #b0bec5;
+      border-radius: 6px;
+      font-size: 14px;
     }
 
     .dashboard {
@@ -200,43 +216,76 @@
       transition: width 0.18s ease;
     }
 
-    .score-display {
+    /* 移動滾動樂譜核心樣式 */
+    .score-window {
       width: 100%;
-      min-height: 92px;
-      max-height: 176px;
-      overflow: auto;
-      font-size: clamp(24px, 5vw, 42px);
-      font-weight: 900;
-      color: var(--blue);
+      height: 110px;
+      overflow: hidden;
       background: var(--paper);
-      padding: 14px 16px;
       border-radius: 8px;
       box-shadow: 0 6px 0 #b0bec5;
-      line-height: 1.55;
-      letter-spacing: 0;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    /* 瞄準紅線導引 */
+    .score-window::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: rgba(255, 87, 34, 0.4);
+      z-index: 5;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    .score-display {
+      display: flex;
+      align-items: center;
+      position: absolute;
+      left: 50%;
+      height: 100%;
+      padding: 0;
+      white-space: nowrap;
+      transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.15);
+      will-change: transform;
     }
 
     .note {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 38px;
-      margin: 2px 1px;
-      padding: 0 6px;
-      border-radius: 8px;
+      width: 55px;
+      height: 55px;
+      margin: 0 8px;
+      border-radius: 50%;
+      font-size: 26px;
+      font-weight: 900;
+      background: #f0f4f8;
+      color: var(--blue);
+      box-shadow: 0 4px 0 #cfd8dc;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
     }
 
     .note.done {
-      color: #90a4ae;
-      text-decoration: line-through;
-      opacity: 0.7;
+      color: #b0bec5;
+      background: #eceff1;
+      box-shadow: 0 2px 0 #b0bec5;
+      opacity: 0.6;
+      transform: scale(0.9);
     }
 
     .note.current {
       color: #fff;
-      background: #ff5722;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 0 #bf360c;
+      background: linear-gradient(135deg, #ff5722, #ff7043);
+      transform: scale(1.3) translateY(-2px);
+      box-shadow: 0 6px 0 #bf360c;
+      z-index: 2;
     }
 
     .controls {
@@ -294,55 +343,112 @@
 
     input[type="range"] { width: 120px; accent-color: var(--orange); }
 
-    .piano-container {
-      display: grid;
-      grid-template-columns: repeat(7, minmax(42px, 1fr));
-      gap: 8px;
-      margin-top: 18px;
-      padding-bottom: 12px;
+    /* 鋼琴式模擬鍵盤樣式 (黑白鍵交錯) */
+    .piano-wrapper {
+      position: relative;
+      margin: 25px auto 10px;
+      padding: 0 5px;
+      background: #1a1a1a;
+      border-radius: 4px 4px 12px 12px;
+      box-shadow: 0 10px 0 rgba(0,0,0,0.15);
+      width: 100%;
+      max-width: 650px;
     }
 
-    .key {
-      height: clamp(145px, 25vw, 220px);
-      background: white;
-      border: 3px solid #263238;
-      border-radius: 0 0 10px 10px;
+    .piano-container {
+      display: flex;
+      position: relative;
+      width: 100%;
+    }
+
+    /* 白鍵 */
+    .key.white-key {
+      flex: 1;
+      height: clamp(160px, 25vw, 240px);
+      background: linear-gradient(to bottom, #fff 0%, #f6f6f6 90%, #eee 100%);
+      border: 2px solid #263238;
+      border-right: none;
+      border-radius: 0 0 6px 6px;
       cursor: pointer;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
       align-items: center;
       padding-bottom: 18px;
-      font-size: clamp(18px, 3.5vw, 28px);
+      font-size: clamp(18px, 3.5vw, 26px);
       font-weight: 900;
-      box-shadow: 0 8px 0 #90a4ae;
-      transition: transform 0.05s, height 0.05s, background 0.1s;
+      color: var(--ink);
+      box-shadow: 0 6px 0 #b0bec5;
+      transition: all 0.05s;
+      z-index: 1;
       touch-action: manipulation;
     }
+    .key.white-key:last-child {
+      border-right: 2px solid #263238;
+    }
 
-    .key span {
+    .key.white-key span {
       display: block;
       font-size: 13px;
       margin-top: 4px;
       color: var(--muted);
     }
 
-    .key.highlight {
+    /* 黑鍵控制 (寬度與定位控制) */
+    .black-keys-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 60%;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .key.black-key {
+      position: absolute;
+      width: 9%; /* 依白鍵寬度微調 */
+      height: 100%;
+      background: linear-gradient(to bottom, #333 0%, #111 80%, #000 100%);
+      border: 2px solid #000;
+      border-radius: 0 0 4px 4px;
+      box-shadow: 0 4px 3px rgba(0,0,0,0.4);
+      cursor: pointer;
+      pointer-events: auto;
+      transition: all 0.05s;
+    }
+
+    /* 依據標準鋼琴 3-4、7-1 之間無黑鍵的規則定位 */
+    #key-black-1 { left: 9.5%; }  /* Do# */
+    #key-black-2 { left: 23.5%; } /* Re# */
+    /* Mi-Fa 間無黑鍵 */
+    #key-black-4 { left: 52%; }   /* Fa# */
+    #key-black-5 { left: 66%; }   /* So# */
+    #key-black-6 { left: 80%; }   /* La# */
+
+    /* 亮起與按壓 */
+    .key.white-key.highlight {
       background: linear-gradient(to bottom, #fff176, #ffb74d);
-      box-shadow: 0 8px 0 var(--orange-dark);
+      box-shadow: 0 6px 0 var(--orange-dark);
       border-color: #e65100;
       animation: bounce 0.6s infinite alternate;
     }
 
-    .key.active {
-      transform: translateY(6px);
-      box-shadow: 0 2px 0 #90a4ae;
+    .key.white-key.active {
       background: #e0f2f1;
+      box-shadow: 0 1px 0 #90a4ae;
+      transform: translateY(5px);
+    }
+
+    .key.black-key.active {
+      background: #424242;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.4);
+      transform: translateY(3px);
     }
 
     .hint-line {
       min-height: 26px;
-      margin: 8px 0 0;
+      margin: 12px 0 0;
       color: var(--muted);
       font-weight: 800;
     }
@@ -381,7 +487,7 @@
 
     @keyframes bounce {
       from { transform: translateY(0); }
-      to { transform: translateY(-8px); }
+      to { transform: translateY(-5px); }
     }
 
     @keyframes spin {
@@ -393,7 +499,7 @@
       .layout { grid-template-columns: 1fr; }
       .song-list {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        max-height: none;
+        max-height: 180px;
       }
       .dashboard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
@@ -404,11 +510,9 @@
       .song-list { grid-template-columns: 1fr; }
       .dashboard { gap: 8px; }
       .info-box { font-size: 15px; min-height: 56px; padding: 8px 4px; }
-      .piano-container { gap: 4px; }
-      .key { border-width: 2px; padding-bottom: 12px; }
-      .key span { font-size: 11px; }
       .btn { width: calc(50% - 6px); padding: 9px 8px; }
       .speed-control, .toggle { width: 100%; justify-content: center; }
+      .note { width: 44px; height: 44px; font-size: 20px; margin: 0 4px; }
     }
   </style>
 </head>
@@ -425,6 +529,13 @@
       <aside class="panel">
         <h2 class="section-title">內建兒歌歌庫</h2>
         <div class="song-list" id="song-list"></div>
+
+        <div class="add-song-form">
+          <h2 class="section-title" style="font-size:16px; margin-bottom:5px;">➕ 新增自訂歌曲</h2>
+          <input type="text" id="new-song-name" placeholder="輸入歌曲名稱（如：小毛驢）">
+          <input type="text" id="new-song-notes" placeholder="輸入簡譜數字（如：1112333）">
+          <button class="btn green" style="width:100%; min-height:36px; padding:5px;" onclick="addNewSong()">加入我的歌曲庫</button>
+        </div>
       </aside>
 
       <section class="panel">
@@ -440,7 +551,9 @@
           <div class="info-box" id="best-box"><small>最高分</small><span>0</span></div>
         </div>
 
-        <div class="score-display" id="score-view">---</div>
+        <div class="score-window">
+          <div class="score-display" id="score-view"></div>
+        </div>
 
         <div class="controls">
           <button class="btn green" onclick="playDemo()">示範播放</button>
@@ -462,14 +575,23 @@
           </label>
         </div>
 
-        <div class="piano-container" aria-label="鋼琴鍵盤">
-          <button class="key" id="key-1" onclick="playNote(1)">1<span>Do</span></button>
-          <button class="key" id="key-2" onclick="playNote(2)">2<span>Re</span></button>
-          <button class="key" id="key-3" onclick="playNote(3)">3<span>Mi</span></button>
-          <button class="key" id="key-4" onclick="playNote(4)">4<span>Fa</span></button>
-          <button class="key" id="key-5" onclick="playNote(5)">5<span>So</span></button>
-          <button class="key" id="key-6" onclick="playNote(6)">6<span>La</span></button>
-          <button class="key" id="key-7" onclick="playNote(7)">7<span>Si</span></button>
+        <div class="piano-wrapper">
+          <div class="piano-container" aria-label="鋼琴鍵盤">
+            <button class="key white-key" id="key-1" onclick="playNote(1)">1<span>Do</span></button>
+            <button class="key white-key" id="key-2" onclick="playNote(2)">2<span>Re</span></button>
+            <button class="key white-key" id="key-3" onclick="playNote(3)">3<span>Mi</span></button>
+            <button class="key white-key" id="key-4" onclick="playNote(4)">4<span>Fa</span></button>
+            <button class="key white-key" id="key-5" onclick="playNote(5)">5<span>So</span></button>
+            <button class="key white-key" id="key-6" onclick="playNote(6)">6<span>La</span></button>
+            <button class="key white-key" id="key-7" onclick="playNote(7)">7<span>Si</span></button>
+          </div>
+          <div class="black-keys-overlay">
+            <button class="key black-key" id="key-black-1" onclick="playBlackKey(277.18)"></button>
+            <button class="key black-key" id="key-black-2" onclick="playBlackKey(311.13)"></button>
+            <button class="key black-key" id="key-black-4" onclick="playBlackKey(369.99)"></button>
+            <button class="key black-key" id="key-black-5" onclick="playBlackKey(415.30)"></button>
+            <button class="key black-key" id="key-black-6" onclick="playBlackKey(466.16)"></button>
+          </div>
         </div>
 
         <div class="hint-line" id="hint-line">點亮的琴鍵就是下一個音，也可以按鍵盤 1-7。</div>
@@ -499,7 +621,8 @@
       7: 493.88
     };
 
-    const songs = [
+    // 初始歌曲清單（會自動從 localStorage 讀取使用者新增的歌曲）
+    let defaultSongs = [
       { name: "小蜜蜂", level: "入門", notes: [5, 3, 3, 4, 2, 2, 1, 2, 3, 4, 5, 5, 5, 5, 3, 3, 4, 2, 2, 1, 3, 5, 5, 3, 2, 2, 2, 2, 2, 3, 4, 3, 3, 3, 3, 3, 4, 5, 5, 3, 3, 4, 2, 2, 1, 3, 5, 5, 1] },
       { name: "小星星", level: "入門", notes: [1, 1, 5, 5, 6, 6, 5, 4, 4, 3, 3, 2, 2, 1, 5, 5, 4, 4, 3, 3, 2, 5, 5, 4, 4, 3, 3, 2, 1, 1, 5, 5, 6, 6, 5, 4, 4, 3, 3, 2, 2, 1] },
       { name: "兩隻老虎", level: "入門", notes: [1, 2, 3, 1, 1, 2, 3, 1, 3, 4, 5, 3, 4, 5, 5, 6, 5, 4, 3, 1, 5, 6, 5, 4, 3, 1, 2, 5, 1, 2, 5, 1] },
@@ -514,6 +637,7 @@
       { name: "布穀鳥", level: "初級", notes: [5, 3, 5, 3, 4, 2, 4, 2, 1, 2, 3, 4, 5, 5, 5, 5, 3, 5, 3, 4, 2, 4, 2, 1, 3, 5, 1] }
     ];
 
+    let songs = [];
     let currentSongIndex = 0;
     let currentNoteIndex = 0;
     let score = 0;
@@ -545,6 +669,50 @@
       gainNode.connect(audioCtx.destination);
       oscillator.start();
       oscillator.stop(audioCtx.currentTime + duration);
+    }
+
+    // 載入歌曲清單（結合本地儲存）
+    function loadSongs() {
+      const customSongs = JSON.parse(localStorage.getItem("piano-custom-songs") || "[]");
+      songs = [...defaultSongs, ...customSongs];
+    }
+
+    // 升級：新增自訂歌曲邏輯
+    function addNewSong() {
+      const nameInput = document.getElementById("new-song-name");
+      const notesInput = document.getElementById("new-song-notes");
+      
+      const name = nameInput.value.trim();
+      const notesString = notesInput.value.trim();
+      
+      if (!name || !notesString) {
+        alert("請輸入完整的歌曲名稱與數字簡譜！");
+        return;
+      }
+      
+      // 將字串（例如 "533"）解析成數字陣列 [5, 3, 3] 並過濾掉非 1-7 的字元
+      const notes = notesString.split("").map(Number).filter(n => n >= 1 && n <= 7);
+      
+      if (notes.length === 0) {
+        alert("簡譜內容必須包含 1 至 7 的數字喔！");
+        return;
+      }
+      
+      const newSong = { name: name, level: "自訂", notes: notes };
+      
+      const customSongs = JSON.parse(localStorage.getItem("piano-custom-songs") || "[]");
+      customSongs.push(newSong);
+      localStorage.setItem("piano-custom-songs", JSON.stringify(customSongs));
+      
+      // 清空輸入框
+      nameInput.value = "";
+      notesInput.value = "";
+      
+      // 刷新並自動選中新歌曲
+      loadSongs();
+      renderSongList();
+      switchSong(songs.length - 1);
+      alert(`成功加入歌曲「${name}」！🎉`);
     }
 
     function renderSongList() {
@@ -586,8 +754,9 @@
     }
 
     function setFocusState(focused) {
-      isFocused = focused;
       const statusBox = document.getElementById("status-box");
+      if (!statusBox) return;
+      isFocused = focused;
       statusBox.classList.toggle("distracted", !focused);
       statusBox.querySelector("span").innerText = focused ? "專注中" : "分心了";
     }
@@ -604,6 +773,7 @@
       }
     }
 
+    // 升級：跟著前進移動的動態樂譜邏輯
     function updateGame() {
       const song = songs[currentSongIndex];
       const hideHints = document.getElementById("hide-hints").checked;
@@ -615,7 +785,7 @@
       document.querySelectorAll(".key").forEach(k => k.classList.remove("highlight"));
 
       if (freeMode) {
-        document.getElementById("score-view").innerHTML = "自由彈奏模式";
+        document.getElementById("score-view").innerHTML = "<div style='width:100%; text-align:center;'>自由彈奏模式</div>";
         document.getElementById("hint-line").innerText = "按任意琴鍵或鍵盤 1-7，自由創作旋律。";
         return;
       }
@@ -630,11 +800,18 @@
         return;
       }
 
+      // 生成音符陣列 HTML
       document.getElementById("score-view").innerHTML = song.notes.map((note, index) => {
         const className = index < currentNoteIndex ? "done" : index === currentNoteIndex ? "current" : "";
         const label = hideHints && index >= currentNoteIndex ? "?" : note;
         return `<span class="note ${className}">${label}</span>`;
       }).join("");
+
+      // 核心控制：利用 CSS translateX 實現完美置中移動樂譜
+      // 每個音符寬度 55px + 左右外邊距各 8px (16px) = 71px
+      const noteWidth = 71; 
+      const offset = - (currentNoteIndex * noteWidth) - (noteWidth / 2);
+      document.getElementById("score-view").style.transform = `translateX(${offset}px)`;
 
       const currentNote = song.notes[currentNoteIndex];
       const targetKey = document.getElementById(`key-${currentNote}`);
@@ -649,6 +826,16 @@
       if (!key) return;
       key.classList.add("active");
       setTimeout(() => key.classList.remove("active"), 120);
+    }
+
+    // 點擊黑鍵的專屬額外音效（不計分，純增添豐富度）
+    function playBlackKey(freq) {
+      initAudio();
+      playTone(freq, 0.4);
+      // 觸發黑鍵按壓動畫
+      const eventTarget = window.event.target;
+      eventTarget.classList.add("active");
+      setTimeout(() => eventTarget.classList.remove("active"), 120);
     }
 
     function playNote(noteNum) {
@@ -750,9 +937,11 @@
         const note = song.notes[demoIndex];
         playTone(frequencies[note], Math.min(0.55, getTempo() / 1000));
         animateKey(note);
-        document.querySelectorAll(".key").forEach(k => k.classList.remove("highlight"));
-        const key = document.getElementById(`key-${note}`);
-        if (key) key.classList.add("highlight");
+        
+        // 自動跟著更新樂譜位子
+        currentNoteIndex = demoIndex;
+        updateGame();
+
         demoIndex++;
         demoTimer = setTimeout(step, getTempo());
       };
@@ -764,7 +953,10 @@
       demoTimer = null;
       demoIndex = 0;
       document.querySelectorAll(".key").forEach(k => k.classList.remove("active"));
-      if (clearHint) updateGame();
+      if (clearHint) {
+        currentNoteIndex = 0;
+        updateGame();
+      }
     }
 
     function toggleFreeMode() {
@@ -790,6 +982,8 @@
       if (!timeBonusTimer) startTimeBonus();
     }, { once: true });
 
+    // 初始化流程
+    loadSongs();
     renderSongList();
     updateTempoLabel();
     updateGame();
