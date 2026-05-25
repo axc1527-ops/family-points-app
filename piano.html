@@ -144,7 +144,6 @@
       color: var(--muted);
     }
 
-    /* 新增歌曲表單樣式 */
     .add-song-form {
       margin-top: 15px;
       padding-top: 15px;
@@ -216,7 +215,6 @@
       transition: width 0.18s ease;
     }
 
-    /* 移動滾動樂譜核心樣式 */
     .score-window {
       width: 100%;
       height: 110px;
@@ -229,7 +227,6 @@
       align-items: center;
     }
 
-    /* 瞄準紅線導引 */
     .score-window::before {
       content: '';
       position: absolute;
@@ -343,7 +340,6 @@
 
     input[type="range"] { width: 120px; accent-color: var(--orange); }
 
-    /* 鋼琴式模擬鍵盤樣式 (黑白鍵交錯) */
     .piano-wrapper {
       position: relative;
       margin: 25px auto 10px;
@@ -361,7 +357,6 @@
       width: 100%;
     }
 
-    /* 白鍵 */
     .key.white-key {
       flex: 1;
       height: clamp(160px, 25vw, 240px);
@@ -394,7 +389,6 @@
       color: var(--muted);
     }
 
-    /* 黑鍵控制 (寬度與定位控制) */
     .black-keys-overlay {
       position: absolute;
       top: 0;
@@ -407,7 +401,7 @@
 
     .key.black-key {
       position: absolute;
-      width: 9%; /* 依白鍵寬度微調 */
+      width: 9%;
       height: 100%;
       background: linear-gradient(to bottom, #333 0%, #111 80%, #000 100%);
       border: 2px solid #000;
@@ -418,15 +412,12 @@
       transition: all 0.05s;
     }
 
-    /* 依據標準鋼琴 3-4、7-1 之間無黑鍵的規則定位 */
-    #key-black-1 { left: 9.5%; }  /* Do# */
-    #key-black-2 { left: 23.5%; } /* Re# */
-    /* Mi-Fa 間無黑鍵 */
-    #key-black-4 { left: 52%; }   /* Fa# */
-    #key-black-5 { left: 66%; }   /* So# */
-    #key-black-6 { left: 80%; }   /* La# */
+    #key-black-1 { left: 9.5%; }
+    #key-black-2 { left: 23.5%; }
+    #key-black-4 { left: 52%; }
+    #key-black-5 { left: 66%; }
+    #key-black-6 { left: 80%; }
 
-    /* 亮起與按壓 */
     .key.white-key.highlight {
       background: linear-gradient(to bottom, #fff176, #ffb74d);
       box-shadow: 0 6px 0 var(--orange-dark);
@@ -531,10 +522,10 @@
         <div class="song-list" id="song-list"></div>
 
         <div class="add-song-form">
-          <h2 class="section-title" style="font-size:16px; margin-bottom:5px;">➕ 新增自訂歌曲</h2>
+          <h2 class="section-title" style="font-size:16px; margin-bottom:5px;">➕ 儲存與修改歌曲</h2>
           <input type="text" id="new-song-name" placeholder="輸入歌曲名稱（如：小毛驢）">
           <input type="text" id="new-song-notes" placeholder="輸入簡譜數字（如：1112333）">
-          <button class="btn green" style="width:100%; min-height:36px; padding:5px;" onclick="addNewSong()">加入我的歌曲庫</button>
+          <button class="btn green" style="width:100%; min-height:36px; padding:5px;" onclick="addNewSong()">儲存歌曲（新增/修改）</button>
         </div>
       </aside>
 
@@ -621,7 +612,6 @@
       7: 493.88
     };
 
-    // 初始歌曲清單（會自動從 localStorage 讀取使用者新增的歌曲）
     let defaultSongs = [
       { name: "小蜜蜂", level: "入門", notes: [5, 3, 3, 4, 2, 2, 1, 2, 3, 4, 5, 5, 5, 5, 3, 3, 4, 2, 2, 1, 3, 5, 5, 3, 2, 2, 2, 2, 2, 3, 4, 3, 3, 3, 3, 3, 4, 5, 5, 3, 3, 4, 2, 2, 1, 3, 5, 5, 1] },
       { name: "小星星", level: "入門", notes: [1, 1, 5, 5, 6, 6, 5, 4, 4, 3, 3, 2, 2, 1, 5, 5, 4, 4, 3, 3, 2, 5, 5, 4, 4, 3, 3, 2, 1, 1, 5, 5, 6, 6, 5, 4, 4, 3, 3, 2, 2, 1] },
@@ -671,13 +661,17 @@
       oscillator.stop(audioCtx.currentTime + duration);
     }
 
-    // 載入歌曲清單（結合本地儲存）
     function loadSongs() {
-      const customSongs = JSON.parse(localStorage.getItem("piano-custom-songs") || "[]");
-      songs = [...defaultSongs, ...customSongs];
-    }
+  const customSongs = JSON.parse(localStorage.getItem("piano-custom-songs") || "[]");
+  // 讀取已經被刪除的內建歌曲名字清單
+  const deletedDefaultSongs = JSON.parse(localStorage.getItem("piano-deleted-defaults") || "[]");
+  
+  // 過濾掉在黑名單裡的內建歌曲
+  const activeDefaults = defaultSongs.filter(song => !deletedDefaultSongs.includes(song.name));
+  
+  songs = [...activeDefaults, ...customSongs];
+}
 
-    // 升級：新增自訂歌曲邏輯
     function addNewSong() {
       const nameInput = document.getElementById("new-song-name");
       const notesInput = document.getElementById("new-song-notes");
@@ -690,40 +684,105 @@
         return;
       }
       
-      // 將字串（例如 "533"）解析成數字陣列 [5, 3, 3] 並過濾掉非 1-7 的字元
       const notes = notesString.split("").map(Number).filter(n => n >= 1 && n <= 7);
-      
       if (notes.length === 0) {
         alert("簡譜內容必須包含 1 至 7 的數字喔！");
         return;
       }
       
-      const newSong = { name: name, level: "自訂", notes: notes };
-      
       const customSongs = JSON.parse(localStorage.getItem("piano-custom-songs") || "[]");
-      customSongs.push(newSong);
-      localStorage.setItem("piano-custom-songs", JSON.stringify(customSongs));
+
+      // 檢查目前輸入的歌名，是不是正在選取的那首歌
+      if (songs[currentSongIndex] && songs[currentSongIndex].name === name) {
+        // 【修改模式】：如果是同一首歌，直接修改它的樂譜
+        songs[currentSongIndex].notes = notes;
+        
+        if (currentSongIndex < defaultSongs.length) {
+          // 如果改的是內建歌曲，把它升級成「已修改」並丟進自訂庫保存
+          const existIndex = customSongs.findIndex(s => s.name === name);
+          if (existIndex > -1) customSongs[existIndex].notes = notes;
+          else customSongs.push({ name: name, level: "已修改", notes: notes });
+        } else {
+          // 如果本來就是自訂歌，直接更新自訂庫
+          customSongs[currentSongIndex - defaultSongs.length].notes = notes;
+        }
+        localStorage.setItem("piano-custom-songs", JSON.stringify(customSongs));
+        alert(`歌曲「${name}」已成功修改並儲存！✏️`);
+      } else {
+        // 【全新新增模式】：如果輸入了全新的歌名
+        const newSong = { name: name, level: "自訂", notes: notes };
+        customSongs.push(newSong);
+        localStorage.setItem("piano-custom-songs", JSON.stringify(customSongs));
+        alert(`成功加入全新歌曲「${name}」！🎉`);
+      }
       
-      // 清空輸入框
-      nameInput.value = "";
-      notesInput.value = "";
-      
-      // 刷新並自動選中新歌曲
       loadSongs();
       renderSongList();
-      switchSong(songs.length - 1);
-      alert(`成功加入歌曲「${name}」！🎉`);
+      const targetIndex = songs.findIndex(s => s.name === name);
+      switchSong(targetIndex > -1 ? targetIndex : currentSongIndex);
     }
+function deleteSong(songName, globalIndex) {
+  // 🔒 第一關：密碼鎖驗證
+  const password = prompt("【家長專區】請輸入四位數密碼以刪除歌曲：");
+  if (password === null) return; // 使用者按取消
+  if (password !== "1234") {
+    alert("密碼錯誤！無法刪除歌曲。");
+    return;
+  }
 
+  // 🔒 第二關：再次確認
+  if (!confirm(`確定要刪除「${songName}」嗎？`)) return;
+
+  // 判斷這首歌是內建的還是自訂的
+  // 我們透過檢查這首歌是不是原本就在 defaultSongs 清單中
+  const isDefault = defaultSongs.some(s => s.name === songName);
+
+  if (isDefault) {
+    // 【刪除內建歌曲】：把歌名加進黑名單，存到 LocalStorage
+    let deletedDefaults = JSON.parse(localStorage.getItem("piano-deleted-defaults") || "[]");
+    if (!deletedDefaults.includes(songName)) {
+      deletedDefaults.push(songName);
+    }
+    localStorage.setItem("piano-deleted-defaults", JSON.stringify(deletedDefaults));
+  } else {
+    // 【刪除自訂歌曲】：從自訂歌單中移除
+    let customSongs = JSON.parse(localStorage.getItem("piano-custom-songs") || "[]");
+    customSongs = customSongs.filter(s => s.name !== songName);
+    localStorage.setItem("piano-custom-songs", JSON.stringify(customSongs));
+  }
+
+  // 刷新資料與畫面
+  loadSongs();
+  
+  // 防呆：如果刪除的剛好是目前正在彈的歌，或是歌單變短了，就跳回第一首
+  if (currentSongIndex === globalIndex || currentSongIndex >= songs.length) {
+    switchSong(0);
+  } else if (currentSongIndex > globalIndex) {
+    // 如果刪除的是前面的歌，目前選取的索引要減 1 畫面才不會跳錯
+    switchSong(currentSongIndex - 1);
+  } else {
+    renderSongList();
+  }
+  
+  alert(`「${songName}」已成功刪除！`);
+}
     function renderSongList() {
-      const list = document.getElementById("song-list");
-      list.innerHTML = songs.map((song, index) => `
-        <button class="song-card ${index === currentSongIndex ? "active" : ""}" onclick="switchSong(${index})">
+  const list = document.getElementById("song-list");
+  list.innerHTML = songs.map((song, index) => {
+    // 每一首歌都有紅色叉叉，點擊時會把歌曲的「名字」傳進去刪除
+    const deleteBtn = `<span style="color:#f44336; font-size:20px; margin-left:auto; padding:0 5px; cursor:pointer;" onclick="event.stopPropagation(); deleteSong('${song.name}', ${index})">❌</span>`;
+
+    return `
+      <button class="song-card ${index === currentSongIndex ? 'active' : ''}" onclick="switchSong(${index})" style="display:flex; align-items:center; width:100%;">
+        <div style="text-align:left;">
           <span class="song-name">${index + 1}. ${song.name}</span>
           <span class="song-meta">${song.level} · ${song.notes.length} 個音</span>
-        </button>
-      `).join("");
-    }
+        </div>
+        ${deleteBtn}
+      </button>
+    `;
+  }).join("");
+}
 
     function getBestKey() {
       return `piano-best-${songs[currentSongIndex].name}`;
@@ -773,7 +832,6 @@
       }
     }
 
-    // 升級：跟著前進移動的動態樂譜邏輯
     function updateGame() {
       const song = songs[currentSongIndex];
       const hideHints = document.getElementById("hide-hints").checked;
@@ -800,15 +858,12 @@
         return;
       }
 
-      // 生成音符陣列 HTML
       document.getElementById("score-view").innerHTML = song.notes.map((note, index) => {
         const className = index < currentNoteIndex ? "done" : index === currentNoteIndex ? "current" : "";
         const label = hideHints && index >= currentNoteIndex ? "?" : note;
         return `<span class="note ${className}">${label}</span>`;
       }).join("");
 
-      // 核心控制：利用 CSS translateX 實現完美置中移動樂譜
-      // 每個音符寬度 55px + 左右外邊距各 8px (16px) = 71px
       const noteWidth = 71; 
       const offset = - (currentNoteIndex * noteWidth) - (noteWidth / 2);
       document.getElementById("score-view").style.transform = `translateX(${offset}px)`;
@@ -828,11 +883,9 @@
       setTimeout(() => key.classList.remove("active"), 120);
     }
 
-    // 點擊黑鍵的專屬額外音效（不計分，純增添豐富度）
     function playBlackKey(freq) {
       initAudio();
       playTone(freq, 0.4);
-      // 觸發黑鍵按壓動畫
       const eventTarget = window.event.target;
       eventTarget.classList.add("active");
       setTimeout(() => eventTarget.classList.remove("active"), 120);
@@ -899,6 +952,12 @@
       updateDashboard();
       updateGame();
       startTimeBonus();
+
+      // 自動把點選歌曲的資料回填到修改欄位
+      if (songs[index]) {
+        document.getElementById("new-song-name").value = songs[index].name;
+        document.getElementById("new-song-notes").value = songs[index].notes.join("");
+      }
     }
 
     function restartSong() {
@@ -938,7 +997,6 @@
         playTone(frequencies[note], Math.min(0.55, getTempo() / 1000));
         animateKey(note);
         
-        // 自動跟著更新樂譜位子
         currentNoteIndex = demoIndex;
         updateGame();
 
@@ -982,7 +1040,6 @@
       if (!timeBonusTimer) startTimeBonus();
     }, { once: true });
 
-    // 初始化流程
     loadSongs();
     renderSongList();
     updateTempoLabel();
