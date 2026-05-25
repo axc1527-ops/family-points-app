@@ -1,390 +1,799 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚡ 兒童專注力鋼琴大冒險 🎹</title>
-    <style>
-        body {
-            font-family: 'Comic Sans MS', 'Chalkboard SE', '微軟正黑體', sans-serif;
-            text-align: center;
-            background: linear-gradient(135deg, #e0f7fa 0%, #fff9c4 100%);
-            margin: 0;
-            padding: 20px;
-            user-select: none;
-            overflow-x: hidden;
-        }
-        h1 { color: #333; font-size: 32px; text-shadow: 2px 2px 0px #fff; }
-        
-        /* 儀表板 */
-        .dashboard {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-        .info-box {
-            background: white;
-            padding: 10px 20px;
-            border-radius: 15px;
-            box-shadow: 0 6px 0 #ccc;
-            font-size: 22px;
-            font-weight: bold;
-            min-width: 120px;
-        }
-        #score-box { color: #ff5722; border: 3px solid #ff5722; }
-        #combo-box { color: #e91e63; border: 3px solid #e91e63; transform: scale(1); transition: transform 0.1s; }
-        #status-box { color: #4caf50; border: 3px solid #4caf50; }
-        #status-box.distracted { color: #757575; border: 3px solid #757575; background: #eee; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>兒童專注力鋼琴大冒險</title>
+  <style>
+    :root {
+      --ink: #263238;
+      --muted: #607d8b;
+      --paper: #ffffff;
+      --sky: #dff6ff;
+      --sun: #fff5b8;
+      --blue: #2196f3;
+      --blue-dark: #1565c0;
+      --green: #43a047;
+      --green-dark: #2e7d32;
+      --orange: #ff9800;
+      --orange-dark: #ef6c00;
+      --pink: #e91e63;
+      --violet: #6c5ce7;
+      --violet-dark: #4b3fb2;
+    }
 
-        .score-display {
-            font-size: 36px;
-            font-weight: bold;
-            color: #2196f3;
-            background: white;
-            display: inline-block;
-            padding: 15px 30px;
-            border-radius: 20px;
-            box-shadow: 0 8px 0 #bbb;
-            margin-bottom: 25px;
-            letter-spacing: 5px;
-        }
-        
-        /* 琴鍵 */
-        .piano-container {
-            display: flex;
-            justify-content: center;
-            margin-top: 20px;
-            padding-bottom: 20px;
-        }
-        .key {
-            width: 65px;
-            height: 220px;
-            background: white;
-            border: 3px solid #333;
-            border-radius: 0 0 10px 10px;
-            margin: 0 6px;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            align-items: center;
-            padding-bottom: 20px;
-            box-sizing: border-box;
-            font-size: 24px;
-            font-weight: bold;
-            box-shadow: 0 8px 0 #9e9e9e;
-            transition: all 0.05s;
-        }
-        /* 絢麗高亮 */
-        .key.highlight {
-            background: linear-gradient(to bottom, #fff700 0%, #ff9800 100%);
-            box-shadow: 0 8px 0 #f57c00;
-            border-color: #e65100;
-            animation: bounce 0.6s infinite alternate;
-        }
-        .key:active, .key.active {
-            height: 214px;
-            box-shadow: 0 2px 0 #9e9e9e;
-            margin-top: 6px;
-            background-color: #e0e0e0;
-        }
+    * { box-sizing: border-box; }
 
-        /* 歌曲按鈕 */
-        .btn {
-            padding: 12px 24px;
-            font-size: 18px;
-            font-weight: bold;
-            margin: 5px;
-            cursor: pointer;
-            background-color: #00bcd4;
-            color: white;
-            border: none;
-            border-radius: 50px;
-            box-shadow: 0 4px 0 #0097a7;
-        }
-        .btn:active { transform: translateY(4px); box-shadow: none; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Microsoft JhengHei", "Noto Sans TC", "PingFang TC", Arial, sans-serif;
+      color: var(--ink);
+      text-align: center;
+      background:
+        radial-gradient(circle at 16% 10%, rgba(255, 235, 59, 0.38), transparent 24rem),
+        radial-gradient(circle at 85% 8%, rgba(33, 150, 243, 0.18), transparent 22rem),
+        linear-gradient(135deg, var(--sky), var(--sun));
+      user-select: none;
+      overflow-x: hidden;
+    }
 
-        /* 絢麗大圖示慶祝層 */
-        .celebration-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.5s ease;
-        }
-        .celebration-overlay.show { opacity: 1; pointer-events: auto; }
-        .celebration-badge {
-            background: white;
-            padding: 40px;
-            border-radius: 30px;
-            text-align: center;
-            box-shadow: 0 0 30px #ffeb3b;
-            transform: scale(0.5);
-            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .celebration-overlay.show .celebration-badge { transform: scale(1); }
-        .celebration-badge h2 { font-size: 60px; margin: 0; color: #ff9800; animation: rainbowText 2s infinite; }
-        .celebration-badge p { font-size: 24px; color: #555; font-weight: bold; }
-        .big-icon { font-size: 100px; animation: spin 1s ease-out; }
+    .app {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      padding: 16px;
+    }
 
-        /* 動畫特效 */
-        @keyframes bounce {
-            from { transform: translateY(0); }
-            to { transform: translateY(-8px); }
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg) scale(0); }
-            100% { transform: rotate(360deg) scale(1); }
-        }
-        @keyframes rainbowText {
-            0% { color: #ff5722; } 25% { color: #4caf50; } 50% { color: #2196f3; } 75% { color: #9c27b0; } 100% { color: #ff5722; }
-        }
-    </style>
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .back-link,
+    .mini-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 9px 14px;
+      border-radius: 12px;
+      background: var(--blue);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 800;
+      box-shadow: 0 4px 0 var(--blue-dark);
+    }
+
+    .mini-pill {
+      background: #fff;
+      color: var(--muted);
+      border: 2px solid #d9edf7;
+      box-shadow: none;
+    }
+
+    h1 {
+      margin: 8px 0 10px;
+      font-size: clamp(28px, 5vw, 46px);
+      line-height: 1.12;
+      text-shadow: 2px 2px 0 #fff;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 310px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.94);
+      border: 2px solid rgba(38, 50, 56, 0.08);
+      border-radius: 8px;
+      box-shadow: 0 8px 0 rgba(38, 50, 56, 0.14);
+      padding: 14px;
+    }
+
+    .section-title {
+      margin: 0 0 10px;
+      font-size: 18px;
+      font-weight: 900;
+      text-align: left;
+    }
+
+    .song-list {
+      display: grid;
+      gap: 8px;
+      max-height: 470px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .song-card {
+      width: 100%;
+      min-height: 58px;
+      border: 2px solid #e1eef5;
+      border-radius: 8px;
+      background: #fff;
+      padding: 9px 10px;
+      text-align: left;
+      cursor: pointer;
+      font: inherit;
+      color: var(--ink);
+    }
+
+    .song-card.active {
+      border-color: var(--violet);
+      background: #f4f1ff;
+      box-shadow: inset 5px 0 0 var(--violet);
+    }
+
+    .song-name {
+      display: block;
+      font-size: 17px;
+      font-weight: 900;
+    }
+
+    .song-meta {
+      display: block;
+      margin-top: 3px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    .info-box {
+      background: var(--paper);
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 5px 0 #cfd8dc;
+      font-size: 17px;
+      font-weight: 900;
+      min-height: 62px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 2px;
+    }
+
+    .info-box small {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    #score-box { color: #ff5722; border: 3px solid #ff5722; }
+    #combo-box { color: var(--pink); border: 3px solid var(--pink); transition: transform 0.1s; }
+    #status-box { color: var(--green); border: 3px solid var(--green); }
+    #best-box { color: var(--violet); border: 3px solid var(--violet); }
+    #status-box.distracted { color: #757575; border-color: #757575; background: #eee; }
+
+    .song-title {
+      margin: 4px 0 8px;
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .progress-wrap {
+      width: 100%;
+      height: 16px;
+      background: #e0edf3;
+      border: 2px solid #b0bec5;
+      border-radius: 99px;
+      overflow: hidden;
+      margin: 8px 0 12px;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--green), #9ccc65);
+      transition: width 0.18s ease;
+    }
+
+    .score-display {
+      width: 100%;
+      min-height: 92px;
+      max-height: 176px;
+      overflow: auto;
+      font-size: clamp(24px, 5vw, 42px);
+      font-weight: 900;
+      color: var(--blue);
+      background: var(--paper);
+      padding: 14px 16px;
+      border-radius: 8px;
+      box-shadow: 0 6px 0 #b0bec5;
+      line-height: 1.55;
+      letter-spacing: 0;
+    }
+
+    .note {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 38px;
+      margin: 2px 1px;
+      padding: 0 6px;
+      border-radius: 8px;
+    }
+
+    .note.done {
+      color: #90a4ae;
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
+
+    .note.current {
+      color: #fff;
+      background: #ff5722;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 0 #bf360c;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0 4px;
+    }
+
+    .btn {
+      min-height: 46px;
+      padding: 10px 16px;
+      font-size: 16px;
+      font-weight: 900;
+      cursor: pointer;
+      background: var(--blue);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      box-shadow: 0 4px 0 var(--blue-dark);
+      touch-action: manipulation;
+    }
+
+    .btn:active { transform: translateY(4px); box-shadow: none; }
+    .btn.green { background: var(--green); box-shadow: 0 4px 0 var(--green-dark); }
+    .btn.orange { background: var(--orange); box-shadow: 0 4px 0 var(--orange-dark); }
+    .btn.violet { background: var(--violet); box-shadow: 0 4px 0 var(--violet-dark); }
+    .btn.pink { background: var(--pink); box-shadow: 0 4px 0 #ad1457; }
+
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 42px;
+      padding: 8px 10px;
+      border: 2px solid #cfd8dc;
+      border-radius: 8px;
+      background: #fff;
+      font-weight: 800;
+    }
+
+    .speed-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 42px;
+      padding: 8px 10px;
+      border: 2px solid #cfd8dc;
+      border-radius: 8px;
+      background: #fff;
+      font-weight: 800;
+    }
+
+    input[type="range"] { width: 120px; accent-color: var(--orange); }
+
+    .piano-container {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(42px, 1fr));
+      gap: 8px;
+      margin-top: 18px;
+      padding-bottom: 12px;
+    }
+
+    .key {
+      height: clamp(145px, 25vw, 220px);
+      background: white;
+      border: 3px solid #263238;
+      border-radius: 0 0 10px 10px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      padding-bottom: 18px;
+      font-size: clamp(18px, 3.5vw, 28px);
+      font-weight: 900;
+      box-shadow: 0 8px 0 #90a4ae;
+      transition: transform 0.05s, height 0.05s, background 0.1s;
+      touch-action: manipulation;
+    }
+
+    .key span {
+      display: block;
+      font-size: 13px;
+      margin-top: 4px;
+      color: var(--muted);
+    }
+
+    .key.highlight {
+      background: linear-gradient(to bottom, #fff176, #ffb74d);
+      box-shadow: 0 8px 0 var(--orange-dark);
+      border-color: #e65100;
+      animation: bounce 0.6s infinite alternate;
+    }
+
+    .key.active {
+      transform: translateY(6px);
+      box-shadow: 0 2px 0 #90a4ae;
+      background: #e0f2f1;
+    }
+
+    .hint-line {
+      min-height: 26px;
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .celebration-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      padding: 16px;
+    }
+
+    .celebration-overlay.show { opacity: 1; pointer-events: auto; }
+
+    .celebration-badge {
+      width: min(460px, 100%);
+      background: white;
+      padding: 28px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 0 30px #ffeb3b;
+      transform: scale(0.86);
+      transition: transform 0.25s ease;
+    }
+
+    .celebration-overlay.show .celebration-badge { transform: scale(1); }
+    .celebration-badge h2 { font-size: 42px; margin: 0; color: var(--orange); }
+    .celebration-badge p { font-size: 20px; color: #555; font-weight: 900; }
+    .big-icon { font-size: 76px; animation: spin 0.75s ease-out; }
+
+    @keyframes bounce {
+      from { transform: translateY(0); }
+      to { transform: translateY(-8px); }
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg) scale(0); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+
+    @media (max-width: 820px) {
+      .layout { grid-template-columns: 1fr; }
+      .song-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        max-height: none;
+      }
+      .dashboard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 520px) {
+      .app { padding: 10px; }
+      .panel { padding: 10px; }
+      .song-list { grid-template-columns: 1fr; }
+      .dashboard { gap: 8px; }
+      .info-box { font-size: 15px; min-height: 56px; padding: 8px 4px; }
+      .piano-container { gap: 4px; }
+      .key { border-width: 2px; padding-bottom: 12px; }
+      .key span { font-size: 11px; }
+      .btn { width: calc(50% - 6px); padding: 9px 8px; }
+      .speed-control, .toggle { width: 100%; justify-content: center; }
+    }
+  </style>
 </head>
 <body>
-
-    <p style="text-align:center; margin: 0 0 12px;">
-        <a href="./index.html" style="display:inline-block; padding: 10px 16px; border-radius: 12px; background:#2196f3; color:#fff; text-decoration:none; font-weight:700; box-shadow:0 4px 0 #1565c0;">返回集點系統 ⭐</a>
-    </p>
-
-    <h1>⚡ 兒童專注力鋼琴大冒險 🎵</h1>
-    
-    <div>
-        <button class="btn" style="background-color: #4caf50; box-shadow: 0 4px 0 #388e3c;" onclick="switchSong(0)">🐝 小蜜蜂</button>
-        <button class="btn" style="background-color: #ff9800; box-shadow: 0 4px 0 #f57c00;" onclick="switchSong(1)">⭐ 小星星</button>
+  <main class="app">
+    <div class="topbar">
+      <a class="back-link" href="./index.html">返回集點系統</a>
+      <span class="mini-pill">手機、平板、電腦都可玩</span>
     </div>
 
-    <p style="font-size: 20px; font-weight: bold; margin: 15px 0 5px 0;" id="song-title">目前歌曲：小蜜蜂</p>
-    
-    <!-- 遊戲數據儀表板 -->
-    <div class="dashboard">
-        <div class="info-box" id="score-box">得分: 0</div>
-        <div class="info-box" id="combo-box">連擊: 0 🔥</div>
-        <div class="info-box" id="status-box">專注中 ✨</div>
-    </div>
+    <h1>兒童專注力鋼琴大冒險</h1>
 
-    <!-- 顯示簡譜 -->
-    <div class="score-display" id="score-view">---</div>
+    <div class="layout">
+      <aside class="panel">
+        <h2 class="section-title">內建兒歌歌庫</h2>
+        <div class="song-list" id="song-list"></div>
+      </aside>
 
-    <!-- 鋼琴琴鍵 -->
-    <div class="piano-container">
-        <div class="key" id="key-1" onclick="playNote(1)">1<br>Do</div>
-        <div class="key" id="key-2" onclick="playNote(2)">2<br>Re</div>
-        <div class="key" id="key-3" onclick="playNote(3)">3<br>Mi</div>
-        <div class="key" id="key-4" onclick="playNote(4)">4<br>Fa</div>
-        <div class="key" id="key-5" onclick="playNote(5)">5<br>So</div>
-        <div class="key" id="key-6" onclick="playNote(6)">6<br>La</div>
-        <div class="key" id="key-7" onclick="playNote(7)">7<br>Si</div>
-    </div>
-
-    <!-- 絢麗過關大圖示層 -->
-    <div class="celebration-overlay" id="victory-screen">
-        <div class="celebration-badge">
-            <div class="big-icon">👑</div>
-            <h2 id="victory-title">太棒了！🎉</h2>
-            <p id="victory-sub">你獲得了超神音樂家獎牌！</p>
-            <p id="final-score" style="color: #e91e63; font-size: 30px;">最終得分: 0</p>
-            <button class="btn" onclick="closeVictory()">再玩一次 🔁</button>
+      <section class="panel">
+        <div class="song-title" id="song-title">目前歌曲：小蜜蜂</div>
+        <div class="progress-wrap" aria-label="歌曲進度">
+          <div class="progress-bar" id="progress-bar"></div>
         </div>
+
+        <div class="dashboard">
+          <div class="info-box" id="score-box"><small>分數</small><span>0</span></div>
+          <div class="info-box" id="combo-box"><small>連擊</small><span>0</span></div>
+          <div class="info-box" id="status-box"><small>狀態</small><span>專注中</span></div>
+          <div class="info-box" id="best-box"><small>最高分</small><span>0</span></div>
+        </div>
+
+        <div class="score-display" id="score-view">---</div>
+
+        <div class="controls">
+          <button class="btn green" onclick="playDemo()">示範播放</button>
+          <button class="btn orange" onclick="stopDemo()">停止</button>
+          <button class="btn violet" onclick="restartSong()">重練本首</button>
+          <button class="btn pink" onclick="nextSong()">下一首</button>
+          <label class="toggle">
+            <input type="checkbox" id="free-mode" onchange="toggleFreeMode()">
+            自由彈奏
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="hide-hints" onchange="updateGame()">
+            隱藏提示
+          </label>
+          <label class="speed-control">
+            速度
+            <input id="tempo" type="range" min="250" max="900" value="520" step="10" oninput="updateTempoLabel()">
+            <span id="tempo-label">中</span>
+          </label>
+        </div>
+
+        <div class="piano-container" aria-label="鋼琴鍵盤">
+          <button class="key" id="key-1" onclick="playNote(1)">1<span>Do</span></button>
+          <button class="key" id="key-2" onclick="playNote(2)">2<span>Re</span></button>
+          <button class="key" id="key-3" onclick="playNote(3)">3<span>Mi</span></button>
+          <button class="key" id="key-4" onclick="playNote(4)">4<span>Fa</span></button>
+          <button class="key" id="key-5" onclick="playNote(5)">5<span>So</span></button>
+          <button class="key" id="key-6" onclick="playNote(6)">6<span>La</span></button>
+          <button class="key" id="key-7" onclick="playNote(7)">7<span>Si</span></button>
+        </div>
+
+        <div class="hint-line" id="hint-line">點亮的琴鍵就是下一個音，也可以按鍵盤 1-7。</div>
+      </section>
     </div>
+  </main>
 
-    <script>
-        const frequencies = { 1: 261.63, 2: 293.66, 3: 329.63, 4: 349.23, 5: 392.00, 6: 440.00, 7: 493.88 };
-        const songs = [
-            { name: "小蜜蜂", notes: [5, 3, 3, 4, 2, 2, 1, 2, 3, 4, 5, 5, 5] },
-            { name: "小星星", notes: [1, 1, 5, 5, 6, 6, 5, 4, 4, 3, 3, 2, 2, 1] }
-        ];
+  <div class="celebration-overlay" id="victory-screen">
+    <div class="celebration-badge">
+      <div class="big-icon" id="victory-icon">★</div>
+      <h2 id="victory-title">完成演奏</h2>
+      <p id="victory-sub">你完成了一整首歌。</p>
+      <p id="final-score" style="color: #e91e63; font-size: 28px;">總分：0</p>
+      <button class="btn green" onclick="closeVictory()">再玩一次</button>
+      <button class="btn violet" onclick="closeVictoryAndNext()">挑戰下一首</button>
+    </div>
+  </div>
 
-        let currentSongIndex = 0;
-        let currentNoteIndex = 0;
-        
-        // 核心機制變數
-        let score = 0;
-        let combo = 0;
-        let wrongCount = 0;
-        let isFocused = true;
-        let lastActionTime = Date.now();
-        let timeBonusTimer = null;
+  <script>
+    const frequencies = {
+      1: 261.63,
+      2: 293.66,
+      3: 329.63,
+      4: 349.23,
+      5: 392.00,
+      6: 440.00,
+      7: 493.88
+    };
 
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        let audioCtx = null;
+    const songs = [
+      { name: "小蜜蜂", level: "入門", notes: [5, 3, 3, 4, 2, 2, 1, 2, 3, 4, 5, 5, 5, 5, 3, 3, 4, 2, 2, 1, 3, 5, 5, 3, 2, 2, 2, 2, 2, 3, 4, 3, 3, 3, 3, 3, 4, 5, 5, 3, 3, 4, 2, 2, 1, 3, 5, 5, 1] },
+      { name: "小星星", level: "入門", notes: [1, 1, 5, 5, 6, 6, 5, 4, 4, 3, 3, 2, 2, 1, 5, 5, 4, 4, 3, 3, 2, 5, 5, 4, 4, 3, 3, 2, 1, 1, 5, 5, 6, 6, 5, 4, 4, 3, 3, 2, 2, 1] },
+      { name: "兩隻老虎", level: "入門", notes: [1, 2, 3, 1, 1, 2, 3, 1, 3, 4, 5, 3, 4, 5, 5, 6, 5, 4, 3, 1, 5, 6, 5, 4, 3, 1, 2, 5, 1, 2, 5, 1] },
+      { name: "瑪莉有隻小綿羊", level: "入門", notes: [3, 2, 1, 2, 3, 3, 3, 2, 2, 2, 3, 5, 5, 3, 2, 1, 2, 3, 3, 3, 3, 2, 2, 3, 2, 1] },
+      { name: "倫敦鐵橋", level: "初級", notes: [5, 6, 5, 4, 3, 4, 5, 2, 3, 4, 3, 4, 5, 5, 6, 5, 4, 3, 4, 5, 2, 5, 3, 1] },
+      { name: "划船歌", level: "初級", notes: [1, 1, 1, 2, 3, 3, 2, 3, 4, 5, 1, 1, 1, 5, 5, 5, 3, 3, 3, 1, 1, 1, 5, 4, 3, 2, 1] },
+      { name: "歡樂頌", level: "初級", notes: [3, 3, 4, 5, 5, 4, 3, 2, 1, 1, 2, 3, 3, 2, 2, 3, 3, 4, 5, 5, 4, 3, 2, 1, 1, 2, 3, 2, 1, 1] },
+      { name: "平安夜", level: "進階", notes: [5, 6, 5, 3, 5, 6, 5, 3, 2, 2, 7, 1, 1, 5, 6, 6, 1, 7, 6, 5, 6, 5, 3, 5, 6, 5, 3, 2, 2, 7, 1, 1] },
+      { name: "生日快樂", level: "進階", notes: [5, 5, 6, 5, 1, 7, 5, 5, 6, 5, 2, 1, 5, 5, 5, 3, 1, 7, 6, 4, 4, 3, 1, 2, 1] },
+      { name: "新年好", level: "初級", notes: [1, 1, 1, 5, 3, 3, 3, 1, 1, 3, 5, 5, 4, 3, 2, 2, 3, 4, 3, 2, 1, 1, 3, 2, 5, 7, 1] },
+      { name: "聖者的行進", level: "進階", notes: [1, 3, 4, 5, 1, 3, 4, 5, 1, 3, 4, 5, 3, 1, 3, 2, 3, 3, 2, 1, 1, 3, 5, 5, 5, 4, 3, 4, 5, 3, 1, 2, 1] },
+      { name: "布穀鳥", level: "初級", notes: [5, 3, 5, 3, 4, 2, 4, 2, 1, 2, 3, 4, 5, 5, 5, 5, 3, 5, 3, 4, 2, 4, 2, 1, 3, 5, 1] }
+    ];
 
-        // 初始化音訊（防止瀏覽器阻擋）
-        function initAudio() {
-            if (!audioCtx) audioCtx = new AudioContext();
+    let currentSongIndex = 0;
+    let currentNoteIndex = 0;
+    let score = 0;
+    let combo = 0;
+    let wrongCount = 0;
+    let isFocused = true;
+    let lastActionTime = Date.now();
+    let timeBonusTimer = null;
+    let demoTimer = null;
+    let demoIndex = 0;
+    let audioCtx = null;
+
+    const AudioContextType = window.AudioContext || window.webkitAudioContext;
+
+    function initAudio() {
+      if (!audioCtx) audioCtx = new AudioContextType();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+    }
+
+    function playTone(freq, duration = 0.36) {
+      initAudio();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.value = freq;
+      gainNode.gain.setValueAtTime(0.38, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + duration);
+    }
+
+    function renderSongList() {
+      const list = document.getElementById("song-list");
+      list.innerHTML = songs.map((song, index) => `
+        <button class="song-card ${index === currentSongIndex ? "active" : ""}" onclick="switchSong(${index})">
+          <span class="song-name">${index + 1}. ${song.name}</span>
+          <span class="song-meta">${song.level} · ${song.notes.length} 個音</span>
+        </button>
+      `).join("");
+    }
+
+    function getBestKey() {
+      return `piano-best-${songs[currentSongIndex].name}`;
+    }
+
+    function getBestScore() {
+      return Number(localStorage.getItem(getBestKey()) || 0);
+    }
+
+    function saveBestScore() {
+      const best = getBestScore();
+      if (score > best) localStorage.setItem(getBestKey(), String(score));
+    }
+
+    function startTimeBonus() {
+      if (timeBonusTimer) clearInterval(timeBonusTimer);
+      timeBonusTimer = setInterval(() => {
+        const freeMode = document.getElementById("free-mode").checked;
+        if (freeMode || currentNoteIndex >= songs[currentSongIndex].notes.length) return;
+
+        const now = Date.now();
+        if (now - lastActionTime > 7000) setFocusState(false);
+        if (isFocused) {
+          score += 2;
+          updateDashboard();
         }
+      }, 1000);
+    }
 
-        function playTone(freq) {
-            initAudio();
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            oscillator.type = 'sine';
-            oscillator.frequency.value = freq;
-            gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.4);
-        }
+    function setFocusState(focused) {
+      isFocused = focused;
+      const statusBox = document.getElementById("status-box");
+      statusBox.classList.toggle("distracted", !focused);
+      statusBox.querySelector("span").innerText = focused ? "專注中" : "分心了";
+    }
 
-        // 隨時間自動加分定時器（每秒執行）
-        function startTimeBonus() {
-            if (timeBonusTimer) clearInterval(timeBonusTimer);
-            timeBonusTimer = setInterval(() => {
-                let now = Date.now();
-                // 檢查是否太久沒動作（超過 5 秒）
-                if (now - lastActionTime > 5000) {
-                    setFocusState(false);
-                }
+    function updateDashboard() {
+      document.querySelector("#score-box span").innerText = score;
+      document.querySelector("#combo-box span").innerText = `${combo} 下`;
+      document.querySelector("#best-box span").innerText = getBestScore();
 
-                // 只有在專注狀態下才隨時間加分
-                if (isFocused) {
-                    score += 5; // 專注時間每秒 +5 分
-                    updateDashboard();
-                }
-            }, 1000);
-        }
+      const comboBox = document.getElementById("combo-box");
+      if (combo > 0) {
+        comboBox.style.transform = "scale(1.08)";
+        setTimeout(() => comboBox.style.transform = "scale(1)", 100);
+      }
+    }
 
-        // 設定專注/分心狀態
-        function setFocusState(focused) {
-            isFocused = focused;
-            const statusBox = document.getElementById('status-box');
-            if (isFocused) {
-                statusBox.innerText = "專注中 ✨";
-                statusBox.classList.remove('distracted');
-            } else {
-                statusBox.innerText = "分心了 💤";
-                statusBox.classList.add('distracted');
-            }
-        }
+    function updateGame() {
+      const song = songs[currentSongIndex];
+      const hideHints = document.getElementById("hide-hints").checked;
+      const freeMode = document.getElementById("free-mode").checked;
+      const progress = Math.round((currentNoteIndex / song.notes.length) * 100);
 
-        // 更新數據看板
-        function updateDashboard() {
-            document.getElementById('score-box').innerText = `得分: ${score}`;
-            
-            const comboBox = document.getElementById('combo-box');
-            comboBox.innerText = `連擊: ${combo} 🔥`;
-            if (combo > 0) {
-                comboBox.style.transform = "scale(1.2)";
-                setTimeout(() => comboBox.style.transform = "scale(1)", 100);
-            }
-        }
+      document.getElementById("song-title").innerText = `目前歌曲：${song.name}`;
+      document.getElementById("progress-bar").style.width = `${progress}%`;
+      document.querySelectorAll(".key").forEach(k => k.classList.remove("highlight"));
 
-        // 更新畫面提示
-        function updateGame() {
-            const song = songs[currentSongIndex];
-            
-            // 【特別加分機制】完成歌曲
-            if (currentNoteIndex >= song.notes.length) {
-                clearInterval(timeBonusTimer);
-                let clearBonus = 500 + (combo * 50); // 基礎 500 分 + 連擊獎勵
-                score += clearBonus;
-                updateDashboard();
-                
-                // 觸發大圖示絢麗慶祝
-                showVictory(clearBonus);
-                return;
-            }
+      if (freeMode) {
+        document.getElementById("score-view").innerHTML = "自由彈奏模式";
+        document.getElementById("hint-line").innerText = "按任意琴鍵或鍵盤 1-7，自由創作旋律。";
+        return;
+      }
 
-            document.querySelectorAll('.key').forEach(k => k.classList.remove('highlight'));
-
-            let scoreHTML = "";
-            song.notes.forEach((note, index) => {
-                if (index === currentNoteIndex) {
-                    scoreHTML += `<span style="color: #ff5722; font-size: 42px; border-bottom: 4px solid #ff5722; padding: 0 5px;">${note}</span> `;
-                } else {
-                    scoreHTML += `${note} `;
-                }
-            });
-            document.getElementById('score-view').innerHTML = scoreHTML;
-
-            const currentNote = song.notes[currentNoteIndex];
-            const targetKey = document.getElementById(`key-${currentNote}`);
-            if (targetKey) {
-                targetKey.classList.add('highlight');
-            }
-        }
-
-        // 按下琴鍵
-        function playNote(noteNum) {
-            lastActionTime = Date.now(); // 刷新動作時間
-            
-            if (frequencies[noteNum]) {
-                playTone(frequencies[noteNum]);
-            }
-
-            const song = songs[currentSongIndex];
-            
-            if (noteNum === song.notes[currentNoteIndex]) {
-                // 【答對】
-                combo++;
-                wrongCount = 0; // 重設錯誤次數
-                score += 10 + (combo * 2); // 越連擊得分越高
-                
-                setFocusState(true); // 答對立刻重啟專注加分
-                currentNoteIndex++;
-                updateDashboard();
-                updateGame();
-            } else {
-                // 【答錯/失誤】
-                combo = 0; // 連擊中斷
-                wrongCount++;
-                
-                // 連續失誤 3 次以上，停止加分
-                if (wrongCount >= 3) {
-                    setFocusState(false);
-                }
-                updateDashboard();
-            }
-        }
-
-        // 彈出過關大圖示
-        function showVictory(bonus) {
-            document.getElementById('final-score').innerText = `最終總得分: ${score} 分！`;
-            document.getElementById('victory-sub').innerText = `完成歌曲特別加了 ${bonus} 分！`;
-            
-            // 隨機換大圖示增添驚喜感
-            const icons = ['👑', '🏆', '🚀', '🌈', '🎨', '🍿'];
-            document.querySelector('.big-icon').innerText = icons[Math.floor(Math.random() * icons.length)];
-            
-            document.getElementById('victory-screen').classList.add('show');
-        }
-
-        function closeVictory() {
-            document.getElementById('victory-screen').classList.remove('show');
-            switchSong(currentSongIndex); // 重新開始這首歌
-        }
-
-        function switchSong(index) {
-            currentSongIndex = index;
-            currentNoteIndex = 0;
-            score = 0;
-            combo = 0;
-            wrongCount = 0;
-            setFocusState(true);
-            lastActionTime = Date.now();
-            document.getElementById('song-title').innerText = `目前歌曲：${songs[index].name}`;
-            updateDashboard();
-            updateGame();
-            startTimeBonus();
-        }
-
-        // 第一次點擊網頁時啟動時間定時器（迎合瀏覽器安全機制）
-        window.addEventListener('click', function() {
-            initAudio();
-            if(!timeBonusTimer) startTimeBonus();
-        }, { once: true });
-
-        updateGame();
+      if (currentNoteIndex >= song.notes.length) {
+        clearInterval(timeBonusTimer);
+        const clearBonus = 500 + combo * 25;
+        score += clearBonus;
+        saveBestScore();
         updateDashboard();
-    </script>
+        showVictory(clearBonus);
+        return;
+      }
+
+      document.getElementById("score-view").innerHTML = song.notes.map((note, index) => {
+        const className = index < currentNoteIndex ? "done" : index === currentNoteIndex ? "current" : "";
+        const label = hideHints && index >= currentNoteIndex ? "?" : note;
+        return `<span class="note ${className}">${label}</span>`;
+      }).join("");
+
+      const currentNote = song.notes[currentNoteIndex];
+      const targetKey = document.getElementById(`key-${currentNote}`);
+      if (targetKey && !hideHints) targetKey.classList.add("highlight");
+      document.getElementById("hint-line").innerText = hideHints
+        ? "提示已隱藏，挑戰聽感和記憶。"
+        : `下一個音：${currentNote}`;
+    }
+
+    function animateKey(noteNum) {
+      const key = document.getElementById(`key-${noteNum}`);
+      if (!key) return;
+      key.classList.add("active");
+      setTimeout(() => key.classList.remove("active"), 120);
+    }
+
+    function playNote(noteNum) {
+      lastActionTime = Date.now();
+      setFocusState(true);
+      animateKey(noteNum);
+      if (frequencies[noteNum]) playTone(frequencies[noteNum]);
+
+      if (document.getElementById("free-mode").checked) {
+        score += 1;
+        updateDashboard();
+        return;
+      }
+
+      const song = songs[currentSongIndex];
+      if (noteNum === song.notes[currentNoteIndex]) {
+        combo++;
+        wrongCount = 0;
+        score += 10 + combo * 2;
+        currentNoteIndex++;
+        updateDashboard();
+        updateGame();
+      } else {
+        combo = 0;
+        wrongCount++;
+        score = Math.max(0, score - 5);
+        if (wrongCount >= 3) setFocusState(false);
+        updateDashboard();
+      }
+    }
+
+    function showVictory(bonus) {
+      const icons = ["★", "♪", "♫", "✓", "Bravo"];
+      document.getElementById("victory-icon").innerText = icons[Math.floor(Math.random() * icons.length)];
+      document.getElementById("victory-title").innerText = "完成演奏";
+      document.getElementById("victory-sub").innerText = `完成獎勵：${bonus} 分`;
+      document.getElementById("final-score").innerText = `總分：${score} 分`;
+      document.getElementById("victory-screen").classList.add("show");
+    }
+
+    function closeVictory() {
+      document.getElementById("victory-screen").classList.remove("show");
+      restartSong();
+    }
+
+    function closeVictoryAndNext() {
+      document.getElementById("victory-screen").classList.remove("show");
+      nextSong();
+    }
+
+    function switchSong(index) {
+      stopDemo();
+      currentSongIndex = index;
+      currentNoteIndex = 0;
+      score = 0;
+      combo = 0;
+      wrongCount = 0;
+      lastActionTime = Date.now();
+      setFocusState(true);
+      renderSongList();
+      updateDashboard();
+      updateGame();
+      startTimeBonus();
+    }
+
+    function restartSong() {
+      switchSong(currentSongIndex);
+    }
+
+    function nextSong() {
+      switchSong((currentSongIndex + 1) % songs.length);
+    }
+
+    function getTempo() {
+      return Number(document.getElementById("tempo").value);
+    }
+
+    function updateTempoLabel() {
+      const value = getTempo();
+      let label = "中";
+      if (value <= 390) label = "快";
+      if (value >= 700) label = "慢";
+      document.getElementById("tempo-label").innerText = label;
+    }
+
+    function playDemo() {
+      stopDemo();
+      initAudio();
+      const song = songs[currentSongIndex];
+      demoIndex = 0;
+      document.getElementById("hint-line").innerText = "示範播放中，可以跟著亮起的琴鍵一起按。";
+
+      const step = () => {
+        if (demoIndex >= song.notes.length) {
+          stopDemo(false);
+          document.getElementById("hint-line").innerText = "示範結束，換你挑戰。";
+          return;
+        }
+        const note = song.notes[demoIndex];
+        playTone(frequencies[note], Math.min(0.55, getTempo() / 1000));
+        animateKey(note);
+        document.querySelectorAll(".key").forEach(k => k.classList.remove("highlight"));
+        const key = document.getElementById(`key-${note}`);
+        if (key) key.classList.add("highlight");
+        demoIndex++;
+        demoTimer = setTimeout(step, getTempo());
+      };
+      step();
+    }
+
+    function stopDemo(clearHint = true) {
+      if (demoTimer) clearTimeout(demoTimer);
+      demoTimer = null;
+      demoIndex = 0;
+      document.querySelectorAll(".key").forEach(k => k.classList.remove("active"));
+      if (clearHint) updateGame();
+    }
+
+    function toggleFreeMode() {
+      stopDemo();
+      currentNoteIndex = 0;
+      combo = 0;
+      updateDashboard();
+      updateGame();
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (event.repeat) return;
+      const noteNum = Number(event.key);
+      if (noteNum >= 1 && noteNum <= 7) playNote(noteNum);
+      if (event.key === " ") {
+        event.preventDefault();
+        playDemo();
+      }
+    });
+
+    window.addEventListener("click", function() {
+      initAudio();
+      if (!timeBonusTimer) startTimeBonus();
+    }, { once: true });
+
+    renderSongList();
+    updateTempoLabel();
+    updateGame();
+    updateDashboard();
+  </script>
 </body>
 </html>
